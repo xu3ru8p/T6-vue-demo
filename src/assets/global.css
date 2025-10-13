@@ -1,0 +1,22 @@
+
+body {
+  outline: 5px solid rgb(252, 3, 3); /* 紅框測試 */
+}
+
+
+
+/* 🟩 駭客電網動畫層 */
+.hacker-grid {
+  position: fixed;
+  inset: 0;
+  background-image: linear-gradient(#00ffcc20 1px, transparent 1px),
+                    linear-gradient(90deg, #00ffcc20 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: moveGrid 8s linear infinite;
+  z-index: 0;
+}
+
+@keyframes moveGrid {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 50px 50px, 50px 50px; }
+}
