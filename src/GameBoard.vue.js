@@ -1,149 +1,222 @@
-"use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
-var _a;
-Object.defineProperty(exports, "__esModule", { value: true });
-var vue_1 = require("vue");
-var database_js_1 = require("./database.js");
-var database_true_js_1 = require("./database_true.js");
+import { ref, onMounted, watch } from "vue";
+import { scamMessages } from "../database.js"; // 根目錄下
+import { realMessages } from "../database_true.js"; // 根目錄下
 debugger; /* PartiallyEnd: #3632/script.vue */
-var __VLS_export = (await Promise.resolve().then(function () { return require('vue'); })).defineComponent({
+const __VLS_export = (await import('vue')).defineComponent({
     name: "GameBoard",
-    emits: ["next-round"],
-    setup: function (props, _a) {
-        var emit = _a.emit;
-        var gameMessages = (0, vue_1.ref)([]);
-        var selectedMessage = (0, vue_1.ref)(null);
-        var showResult = (0, vue_1.ref)(false);
-        // 隨機挑選元素
-        var getRandomItems = function (arr, n) {
-            var shuffled = __spreadArray([], arr, true).sort(function () { return 0.5 - Math.random(); });
+    props: {
+        round: Number,
+        score: Number,
+        mode: { type: String, default: "normal" }
+    },
+    emits: ["next-round", "end-game"],
+    setup(props, { emit }) {
+        const gameMessages = ref([]);
+        const selectedMessage = ref(null);
+        const showResult = ref(false);
+        const timeLeft = ref(20);
+        let timer = null;
+        const maxRounds = 30;
+        const usedIds = ref(new Set());
+        const startTimer = () => {
+            clearInterval(timer);
+            timeLeft.value = 20;
+            timer = setInterval(() => {
+                timeLeft.value--;
+                if (timeLeft.value <= 0) {
+                    clearInterval(timer);
+                    emit("end-game");
+                }
+            }, 1000);
+        };
+        const getRandomItems = (arr, n) => {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
             return shuffled.slice(0, n);
         };
-        var shuffleArray = function (arr) { return __spreadArray([], arr, true).sort(function () { return 0.5 - Math.random(); }); };
-        // 初始化遊戲訊息
-        var initGame = function () {
-            var selectedScams = getRandomItems(database_js_1.scamMessages, 2);
-            var selectedReal = getRandomItems(database_true_js_1.realMessages, 1);
-            gameMessages.value = shuffleArray(__spreadArray(__spreadArray([], selectedScams, true), selectedReal, true));
+        const shuffleArray = (arr) => [...arr].sort(() => 0.5 - Math.random());
+        const availableTypes = Array.from(new Set([...scamMessages, ...realMessages].map((m) => m.type)));
+        const initGame = () => {
+            if (usedIds.value.size >= maxRounds * 3)
+                return; // 遊戲結束
+            // 隨機挑一個類型
+            const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            // 篩掉已使用的訊息
+            const scamsOfType = scamMessages.filter((m) => m.type === type && !usedIds.value.has(m.id));
+            const realsOfType = realMessages.filter((m) => m.type === type && !usedIds.value.has(m.id));
+            if (scamsOfType.length < 2 || realsOfType.length < 1) {
+                return initGame(); // 該類型不足重新挑
+            }
+            const selectedScams = getRandomItems(scamsOfType, 2);
+            const selectedReal = getRandomItems(realsOfType, 1);
+            const roundMessages = shuffleArray([...selectedScams, ...selectedReal]);
+            roundMessages.forEach((m) => usedIds.value.add(m.id));
+            gameMessages.value = roundMessages;
             selectedMessage.value = null;
             showResult.value = false;
+            if (props.mode === "challenge")
+                startTimer();
+            console.log("Round messages:", roundMessages);
         };
-        var selectMessage = function (msg) {
+        const selectMessage = (msg) => {
             if (selectedMessage.value)
-                return; // 已選過就不能再點
+                return;
             selectedMessage.value = msg;
             showResult.value = true;
-            // 確認正確與否
-            var correct = msg.type === "real";
-            // 等 1.2 秒後進入下一回合
-            setTimeout(function () {
+            const correct = !msg.isScam; // 正確答案判斷
+            if (timer)
+                clearInterval(timer);
+            setTimeout(() => {
                 emit("next-round", correct);
                 initGame();
             }, 1200);
         };
-        (0, vue_1.onMounted)(function () { return initGame(); });
-        return { gameMessages: gameMessages, selectedMessage: selectedMessage, selectMessage: selectMessage, showResult: showResult };
-    },
+        onMounted(() => {
+            initGame();
+        });
+        watch(() => props.mode, () => initGame());
+        return { gameMessages, selectedMessage, selectMessage, showResult, timeLeft };
+    }
 });
-var __VLS_self = (await Promise.resolve().then(function () { return require('vue'); })).defineComponent({
+const __VLS_self = (await import('vue')).defineComponent({
     name: "GameBoard",
-    emits: ["next-round"],
-    setup: function (props, _a) {
-        var emit = _a.emit;
-        var gameMessages = (0, vue_1.ref)([]);
-        var selectedMessage = (0, vue_1.ref)(null);
-        var showResult = (0, vue_1.ref)(false);
-        // 隨機挑選元素
-        var getRandomItems = function (arr, n) {
-            var shuffled = __spreadArray([], arr, true).sort(function () { return 0.5 - Math.random(); });
+    props: {
+        round: Number,
+        score: Number,
+        mode: { type: String, default: "normal" }
+    },
+    emits: ["next-round", "end-game"],
+    setup(props, { emit }) {
+        const gameMessages = ref([]);
+        const selectedMessage = ref(null);
+        const showResult = ref(false);
+        const timeLeft = ref(20);
+        let timer = null;
+        const maxRounds = 30;
+        const usedIds = ref(new Set());
+        const startTimer = () => {
+            clearInterval(timer);
+            timeLeft.value = 20;
+            timer = setInterval(() => {
+                timeLeft.value--;
+                if (timeLeft.value <= 0) {
+                    clearInterval(timer);
+                    emit("end-game");
+                }
+            }, 1000);
+        };
+        const getRandomItems = (arr, n) => {
+            const shuffled = [...arr].sort(() => 0.5 - Math.random());
             return shuffled.slice(0, n);
         };
-        var shuffleArray = function (arr) { return __spreadArray([], arr, true).sort(function () { return 0.5 - Math.random(); }); };
-        // 初始化遊戲訊息
-        var initGame = function () {
-            var selectedScams = getRandomItems(database_js_1.scamMessages, 2);
-            var selectedReal = getRandomItems(database_true_js_1.realMessages, 1);
-            gameMessages.value = shuffleArray(__spreadArray(__spreadArray([], selectedScams, true), selectedReal, true));
+        const shuffleArray = (arr) => [...arr].sort(() => 0.5 - Math.random());
+        const availableTypes = Array.from(new Set([...scamMessages, ...realMessages].map((m) => m.type)));
+        const initGame = () => {
+            if (usedIds.value.size >= maxRounds * 3)
+                return; // 遊戲結束
+            // 隨機挑一個類型
+            const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            // 篩掉已使用的訊息
+            const scamsOfType = scamMessages.filter((m) => m.type === type && !usedIds.value.has(m.id));
+            const realsOfType = realMessages.filter((m) => m.type === type && !usedIds.value.has(m.id));
+            if (scamsOfType.length < 2 || realsOfType.length < 1) {
+                return initGame(); // 該類型不足重新挑
+            }
+            const selectedScams = getRandomItems(scamsOfType, 2);
+            const selectedReal = getRandomItems(realsOfType, 1);
+            const roundMessages = shuffleArray([...selectedScams, ...selectedReal]);
+            roundMessages.forEach((m) => usedIds.value.add(m.id));
+            gameMessages.value = roundMessages;
             selectedMessage.value = null;
             showResult.value = false;
+            if (props.mode === "challenge")
+                startTimer();
+            console.log("Round messages:", roundMessages);
         };
-        var selectMessage = function (msg) {
+        const selectMessage = (msg) => {
             if (selectedMessage.value)
-                return; // 已選過就不能再點
+                return;
             selectedMessage.value = msg;
             showResult.value = true;
-            // 確認正確與否
-            var correct = msg.type === "real";
-            // 等 1.2 秒後進入下一回合
-            setTimeout(function () {
+            const correct = !msg.isScam; // 正確答案判斷
+            if (timer)
+                clearInterval(timer);
+            setTimeout(() => {
                 emit("next-round", correct);
                 initGame();
             }, 1200);
         };
-        (0, vue_1.onMounted)(function () { return initGame(); });
-        return { gameMessages: gameMessages, selectedMessage: selectedMessage, selectMessage: selectMessage, showResult: showResult };
-    },
+        onMounted(() => {
+            initGame();
+        });
+        watch(() => props.mode, () => initGame());
+        return { gameMessages, selectedMessage, selectMessage, showResult, timeLeft };
+    }
 });
-var __VLS_ctx = {};
-var __VLS_elements;
-var __VLS_components;
-var __VLS_directives;
+const __VLS_ctx = {};
+let __VLS_elements;
+let __VLS_components;
+let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)(__assign({ class: "game-board" }));
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "game-board" },
+});
+if (__VLS_ctx.mode === 'challenge') {
+    // @ts-ignore
+    [mode,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "timer" },
+    });
+    (__VLS_ctx.timeLeft);
+    // @ts-ignore
+    [timeLeft,];
+}
 __VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({});
-__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)(__assign({ class: "cards" }));
-var _loop_1 = function (msg) {
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "cards" },
+});
+for (const [msg] of __VLS_getVForSourceType((__VLS_ctx.gameMessages))) {
     // @ts-ignore
     [gameMessages,];
-    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)(__assign(__assign(__assign({ onClick: function () {
-            var _a = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                _a[_i] = arguments[_i];
-            }
-            var $event = _a[0];
-            __VLS_ctx.selectMessage(msg);
-            // @ts-ignore
-            [selectMessage,];
-        } }, { key: (msg.id) }), { class: "card" }), { class: ({
-            selected: __VLS_ctx.selectedMessage && __VLS_ctx.selectedMessage.id === msg.id,
-            correct: __VLS_ctx.showResult && msg.type === 'real',
-            wrong: __VLS_ctx.showResult && ((_a = __VLS_ctx.selectedMessage) === null || _a === void 0 ? void 0 : _a.id) === msg.id && __VLS_ctx.selectedMessage.type !== 'real'
-        }) }));
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ onClick: (...[$event]) => {
+                __VLS_ctx.selectMessage(msg);
+                // @ts-ignore
+                [selectMessage,];
+            } },
+        key: (msg.id),
+        ...{ class: "card" },
+        ...{ class: ({
+                selected: __VLS_ctx.selectedMessage && __VLS_ctx.selectedMessage.id === msg.id,
+                correct: __VLS_ctx.showResult && __VLS_ctx.selectedMessage?.id === msg.id && !msg.isScam,
+                wrong: __VLS_ctx.showResult && __VLS_ctx.selectedMessage?.id === msg.id && msg.isScam
+            }) },
+    });
     // @ts-ignore
     [selectedMessage, selectedMessage, selectedMessage, selectedMessage, showResult, showResult,];
-    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "msg-sender" },
+    });
+    (msg.sender);
+    __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+        ...{ class: "msg-content" },
+    });
     (msg.content);
-};
-for (var _i = 0, _b = __VLS_getVForSourceType((__VLS_ctx.gameMessages)); _i < _b.length; _i++) {
-    var msg = _b[_i][0];
-    _loop_1(msg);
 }
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "hacker-grid" },
+});
 /** @type {__VLS_StyleScopedClasses['game-board']} */ ;
+/** @type {__VLS_StyleScopedClasses['timer']} */ ;
 /** @type {__VLS_StyleScopedClasses['cards']} */ ;
 /** @type {__VLS_StyleScopedClasses['card']} */ ;
 /** @type {__VLS_StyleScopedClasses['selected']} */ ;
 /** @type {__VLS_StyleScopedClasses['correct']} */ ;
 /** @type {__VLS_StyleScopedClasses['wrong']} */ ;
-exports.default = {};
+/** @type {__VLS_StyleScopedClasses['msg-sender']} */ ;
+/** @type {__VLS_StyleScopedClasses['msg-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['hacker-grid']} */ ;
+export default {};
+//# sourceMappingURL=GameBoard.vue.js.map

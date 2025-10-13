@@ -5,6 +5,7 @@ import vueJsx from '@vitejs/plugin-vue-jsx';
 import vueDevTools from 'vite-plugin-vue-devtools';
 // https://vite.dev/config/
 export default defineConfig({
+    base: '/T6-vue-demo/',   // <-- 這行加上你的 repo 名稱
     plugins: [
         vue(),
         vueJsx(),
