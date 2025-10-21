@@ -7,6 +7,7 @@ const gameEnded = ref(false);
 const round = ref(1);
 const score = ref(0);
 const gameMode = ref('normal'); // 存選擇的遊戲模式
+
 // 接收 WelcomeScreen 傳過來的模式
 function startGame(mode) {
     console.log("App.vue 開始遊戲, 模式:", mode); // 測試用

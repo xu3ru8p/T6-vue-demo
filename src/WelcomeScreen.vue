@@ -10,7 +10,7 @@
     <div class="text-center mb-4">
       <!-- <h1 class="title"> 詐騙高手</h1>
       <p class="subtitle">System access granted...</p> -->
-      <h1 class="text-4xl font-bold text-cyan-400 drop-shadow-lg">詐騙高手</h1>
+      <h1 class="text-4xl font-bold text-cyan-400 drop-shadow-lg">想測試你能不能看穿詐騙簡訊的陷阱嗎？</h1>
       <p class="text-lg text-cyan-200">System access granted...</p>
     </div>
 
@@ -44,6 +44,10 @@
       </button>
       <button @click="$emit('start', 'challenge')" class="game-btn w-40 bg-purple-700 hover:bg-purple-500">
         挑戰模式
+      </button>
+      <!-- 返回按鈕（不改變排版） -->
+      <button @click="$emit('back')" class="icon-btn bg-cyan-700 hover:bg-cyan-500 text-cyan-200" title="返回">
+        ←
       </button>
 
       <!-- 排行榜按鈕（縮小圖示）與 按鈕顏色 -->
@@ -145,8 +149,8 @@
 <script setup>
 import { reactive, ref, onMounted } from "vue";
 import axios from "axios";
-// ✅ 宣告 emit
-const emit = defineEmits(['start'])
+// ✅ 宣告 emit（包含 start 與 back）
+const emit = defineEmits(['start', 'back'])
 
 
 // ===========================
@@ -233,9 +237,17 @@ onMounted(fetchEyeColors);
 .welcome-screen { padding-top: 2rem; }
 
 .game-btn {
-  @apply text-white py-3 px-6 rounded-lg font-bold transition-transform duration-200 text-center;
+  color: #ffffff;
+  padding-top: .75rem; /* py-3 */
+  padding-bottom: .75rem;
+  padding-left: 1.5rem; /* px-6 */
+  padding-right: 1.5rem;
+  border-radius: .5rem; /* rounded-lg */
+  font-weight: 700; /* font-bold */
+  text-align: center;
+  transition: transform 0.2s ease; /* transition-transform duration-200 */
 }
-.game-btn:hover { @apply scale-105; }
+.game-btn:hover { transform: scale(1.05); }
 
 /* =========================== SVG 眼睛動畫 =========================== */
 .animate-pulse-slow {

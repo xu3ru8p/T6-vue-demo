@@ -11,6 +11,15 @@ export default defineConfig({
         vueJsx(),
         vueDevTools(),
     ],
+    server: {
+        host: true, // 加上host,Vite 會自動顯示你在區域網路的 IP
+    },
+    build: {
+        sourcemap: true,
+    },
+    css: {
+        devSourcemap: true,
+    },
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url))
