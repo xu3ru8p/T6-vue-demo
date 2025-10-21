@@ -1,14 +1,25 @@
 import axios from "axios";
+// 同時引入 scam 與 real（若有）；若只有 scamMessages 也可工作
+import { scamMessages } from "../database";
+import { realMessages } from "../database_true"; // 如果沒有此檔案，可刪或保留並確保路徑正確
 debugger; /* PartiallyEnd: #3632/script.vue */
 const __VLS_export = (await import('vue')).defineComponent({
     name: "GameResults",
-    props: ["round", "score"],
+    props: {
+        round: Number,
+        score: Number,
+        wrongIds: {
+            type: Array,
+            default: () => []
+        }
+    },
     emits: ["restart"],
     data() {
         return {
             playerName: "",
             leaderboard: [],
-            submitted: false
+            submitted: false,
+            wrongAnswers: []
         };
     },
     methods: {
@@ -37,21 +48,51 @@ const __VLS_export = (await import('vue')).defineComponent({
             catch (err) {
                 console.error("提交分數失敗", err);
             }
+        },
+        loadWrongQuestions() {
+            console.log('GameResults: 開始載入錯題，接收到的wrongIds:', this.wrongIds);
+            // 只從詐騙簡訊中載入錯題（因為錯誤的選擇通常是選到詐騙簡訊）
+            const scamArray = Array.isArray(scamMessages) ? scamMessages : [];
+            console.log('GameResults: 可用的詐騙簡訊數量:', scamArray.length);
+            // 容錯：將 wrongIds 與 msg.id 都轉成字串比較（避免 number/string mismatch）
+            const wrongIdStrs = this.wrongIds.map((id) => String(id));
+            this.wrongAnswers = scamArray.filter((msg) => wrongIdStrs.includes(String(msg.id)));
+            console.log('GameResults: 錯題ID字串陣列:', wrongIdStrs);
+            console.log('GameResults: 找到的錯題數量:', this.wrongAnswers.length);
+            console.log('GameResults: 錯題詳細內容:', this.wrongAnswers);
         }
     },
     mounted() {
         this.fetchLeaderboard();
+        this.loadWrongQuestions();
+    },
+    watch: {
+        wrongIds: {
+            handler() {
+                console.log('GameResults: wrongIds prop 改變，重新載入錯題');
+                this.loadWrongQuestions();
+            },
+            immediate: true
+        }
     }
 });
 const __VLS_self = (await import('vue')).defineComponent({
     name: "GameResults",
-    props: ["round", "score"],
+    props: {
+        round: Number,
+        score: Number,
+        wrongIds: {
+            type: Array,
+            default: () => []
+        }
+    },
     emits: ["restart"],
     data() {
         return {
             playerName: "",
             leaderboard: [],
-            submitted: false
+            submitted: false,
+            wrongAnswers: []
         };
     },
     methods: {
@@ -80,10 +121,32 @@ const __VLS_self = (await import('vue')).defineComponent({
             catch (err) {
                 console.error("提交分數失敗", err);
             }
+        },
+        loadWrongQuestions() {
+            console.log('GameResults: 開始載入錯題，接收到的wrongIds:', this.wrongIds);
+            // 只從詐騙簡訊中載入錯題（因為錯誤的選擇通常是選到詐騙簡訊）
+            const scamArray = Array.isArray(scamMessages) ? scamMessages : [];
+            console.log('GameResults: 可用的詐騙簡訊數量:', scamArray.length);
+            // 容錯：將 wrongIds 與 msg.id 都轉成字串比較（避免 number/string mismatch）
+            const wrongIdStrs = this.wrongIds.map((id) => String(id));
+            this.wrongAnswers = scamArray.filter((msg) => wrongIdStrs.includes(String(msg.id)));
+            console.log('GameResults: 錯題ID字串陣列:', wrongIdStrs);
+            console.log('GameResults: 找到的錯題數量:', this.wrongAnswers.length);
+            console.log('GameResults: 錯題詳細內容:', this.wrongAnswers);
         }
     },
     mounted() {
         this.fetchLeaderboard();
+        this.loadWrongQuestions();
+    },
+    watch: {
+        wrongIds: {
+            handler() {
+                console.log('GameResults: wrongIds prop 改變，重新載入錯題');
+                this.loadWrongQuestions();
+            },
+            immediate: true
+        }
     }
 });
 const __VLS_ctx = {};
@@ -94,6 +157,8 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['leaderboard-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['leaderboard-input']} */ ;
 /** @type {__VLS_StyleScopedClasses['leaderboard-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['wrong-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['wrong-item']} */ ;
 /** @type {__VLS_StyleScopedClasses['leaderboard']} */ ;
 /** @type {__VLS_StyleScopedClasses['restart']} */ ;
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
@@ -127,6 +192,39 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 });
 // @ts-ignore
 [playerName, submitScore, submitted,];
+if (__VLS_ctx.wrongAnswers.length) {
+    // @ts-ignore
+    [wrongAnswers,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "wrong-section" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({});
+    for (const [item, index] of __VLS_getVForSourceType((__VLS_ctx.wrongAnswers))) {
+        // @ts-ignore
+        [wrongAnswers,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            key: (item.id),
+            ...{ class: "wrong-item" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+            ...{ class: "question-title" },
+        });
+        (index + 1);
+        __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+            ...{ class: "question-content" },
+        });
+        (item.content);
+        __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+            ...{ class: "question-explanation" },
+        });
+        (item.explanation);
+    }
+}
+else {
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "perfect-text" },
+    });
+}
 __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({});
 __VLS_asFunctionalElement(__VLS_elements.ol, __VLS_elements.ol)({
     ...{ class: "leaderboard" },
@@ -164,6 +262,12 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 /** @type {__VLS_StyleScopedClasses['results']} */ ;
 /** @type {__VLS_StyleScopedClasses['mission']} */ ;
 /** @type {__VLS_StyleScopedClasses['leaderboard-input']} */ ;
+/** @type {__VLS_StyleScopedClasses['wrong-section']} */ ;
+/** @type {__VLS_StyleScopedClasses['wrong-item']} */ ;
+/** @type {__VLS_StyleScopedClasses['question-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['question-content']} */ ;
+/** @type {__VLS_StyleScopedClasses['question-explanation']} */ ;
+/** @type {__VLS_StyleScopedClasses['perfect-text']} */ ;
 /** @type {__VLS_StyleScopedClasses['leaderboard']} */ ;
 /** @type {__VLS_StyleScopedClasses['rank']} */ ;
 /** @type {__VLS_StyleScopedClasses['name']} */ ;

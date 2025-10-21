@@ -13,98 +13,180 @@
       <div class="relative z-10 bg-gradient-to-br from-slate-800/70 via-slate-900/80 to-slate-800/70 border border-cyan-400/20 rounded-2xl p-6 backdrop-blur-md shadow-2xl shadow-cyan-500/10">
         <!-- 頂部光暈效果 -->
         <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent rounded-full"></div>
-      <h2 class="text-2xl font-bold mb-2">防詐特務：靈魂覺醒測驗</h2>
-      <p class="text-sm text-slate-400 mb-4">回答 13 題，就會知道你的防詐靈魂動物是什麼!</p>
-
-      <div v-if="!started" class="flex gap-3">
-        <button @click="start" class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105">
-          開始測驗
-        </button>
-        <button @click="$emit('cancel')" class="px-6 py-3 border border-slate-600 hover:border-slate-500 rounded-lg font-medium transition-all duration-300 hover:bg-slate-800/50 hover:scale-105">
-          回上頁
-        </button>
-      </div>
-
-      <div v-else>
-        <!-- Progress -->
-        <div class="mb-6">
-          <!-- 進度條標題 -->
-          <div class="flex justify-between items-center mb-3">
-            <div class="text-cyan-300 font-medium">題目 {{ currentIndex + 1 }} / {{ questions.length }}</div>
-            <div class="text-sm bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent font-semibold">
-              反詐意識：{{ Math.round(awarenessPreview) }}
+        <!-- 頂部標題區 -->
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
+              <span class="text-lg">🛡️</span>
             </div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent">
+              防詐特務測驗
+            </h1>
           </div>
           
-          <!-- 視覺化進度條 -->
-          <div class="relative">
-            <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
-              <div class="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out"
+          <div class="max-w-md mx-auto space-y-4 text-slate-300 leading-relaxed">
+            <p class="text-lg font-medium text-slate-200">
+              🧬 覺醒你的防詐靈魂基因
+            </p>
+            
+            <div class="text-sm space-y-2">
+              <p>發現你的防詐動物，掌握專屬特質：</p>
+              <div class="flex flex-wrap justify-center gap-2 text-xs">
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🦊 狐狸</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐢 烏龜</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐶 狗狗</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐱 貓咪</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🦉 貓頭鷹</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐿️ 松鼠</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🦈 鯊魚</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐭 老鼠</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🐙 章魚</span>
+                <span class="bg-slate-700/50 px-2 py-1 rounded-full">🦅 倉鷹</span>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 開始按鈕組 -->
+        <div v-if="!started" class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button @click="start" class="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transform">
+            <span class="flex items-center justify-center gap-2">
+              <span>🚀</span>
+              啟動測驗
+            </span>
+          </button>
+          <button @click="$emit('cancel')" class="px-8 py-3 border border-slate-600 hover:border-slate-500 rounded-xl font-medium transition-all duration-300 hover:bg-slate-800/50 hover:scale-105 transform">
+            返回
+          </button>
+        </div>
+
+        <!-- 測驗進行中 -->
+        <div v-else>
+          <!-- 進度條優化版 -->
+          <div class="mb-8">
+            <!-- 進度標題 -->
+            <div class="flex justify-between items-center mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                  {{ currentIndex + 1 }}
+                </div>
+                <span class="text-cyan-300 font-semibold">共 {{ questions.length }} 題</span>
+              </div>
+              <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                <span class="text-emerald-400 font-semibold text-sm">防詐指數 {{ Math.round(awarenessPreview) }}</span>
+              </div>
+            </div>
+            
+            <!-- 進度條 -->
+            <div class="relative mb-2">
+              <div class="w-full bg-slate-800/60 rounded-full h-3 overflow-hidden border border-slate-700/50">
+                <div class="bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-700 ease-out relative"
+                     :style="{ width: ((currentIndex + 1) / questions.length * 100) + '%' }">
+                  <!-- 進度條內的光效 -->
+                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                </div>
+              </div>
+              <!-- 外層光暈 -->
+              <div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-cyan-400/30 via-blue-500/30 to-purple-500/30 rounded-full blur-sm -z-10"
                    :style="{ width: ((currentIndex + 1) / questions.length * 100) + '%' }">
               </div>
             </div>
-            <!-- 進度條光暈效果 -->
-            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-500/20 rounded-full blur-sm"
-                 :style="{ width: ((currentIndex + 1) / questions.length * 100) + '%' }">
+            
+            <!-- 進度百分比 -->
+            <div class="text-center">
+              <span class="text-xs text-slate-400">{{ Math.round((currentIndex + 1) / questions.length * 100) }}% 完成</span>
             </div>
           </div>
-        </div>
 
-        <!-- Card -->
-        <div class="relative">
-          <!-- 題目卡片背景裝飾 -->
-          <div class="absolute inset-0 bg-gradient-to-br from-slate-700/30 via-slate-800/40 to-slate-700/30 rounded-xl blur-sm"></div>
-          
-          <div class="relative bg-gradient-to-br from-slate-800/60 via-slate-900/70 to-slate-800/60 p-6 rounded-xl border border-slate-600/30 backdrop-blur-sm">
-            <!-- 題目文字 -->
-            <div class="mb-5 text-slate-100 font-medium text-lg leading-relaxed" v-html="questions[currentIndex].text"></div>
-
-            <!-- 選項按鈕 -->
-            <div class="grid gap-3">
-              <button v-for="(opt, idx) in questions[currentIndex].options"
-                      :key="idx"
-                      @click="choose(idx)"
-                      class="group relative text-left p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                      :class="selected === idx ? 
-                        'bg-gradient-to-r from-cyan-500/20 via-blue-600/15 to-cyan-500/20 border-cyan-400/50 shadow-lg shadow-cyan-500/20' : 
-                        'border-slate-600/40 hover:border-slate-500/60 hover:bg-slate-800/40'">
-                <!-- 選中狀態的光暈效果 -->
-                <div v-if="selected === idx" class="absolute inset-0 bg-gradient-to-r from-cyan-400/5 via-transparent to-cyan-400/5 rounded-xl"></div>
-                
-                <div class="relative font-medium text-slate-200 group-hover:text-slate-100 transition-colors duration-300">
-                  {{ opt }}
+          <!-- 題目卡片優化版 -->
+          <div class="relative mb-8">
+            <!-- 卡片背景裝飾 -->
+            <div class="absolute inset-0 bg-gradient-to-br from-slate-700/20 via-slate-800/30 to-slate-700/20 rounded-2xl blur-sm"></div>
+            
+            <div class="relative bg-gradient-to-br from-slate-800/70 via-slate-900/80 to-slate-800/70 p-6 rounded-2xl border border-slate-600/40 backdrop-blur-sm">
+              <!-- 題目編號標籤 -->
+              <div class="absolute -top-3 left-6">
+                <div class="bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg">
+                  Q{{ currentIndex + 1 }}
                 </div>
-                
-                <!-- 選中指示器 -->
-                <div v-if="selected === idx" class="absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50"></div>
-              </button>
-            </div>
-          </div>
-        </div>
+              </div>
+              
+              <!-- 題目文字 -->
+              <div class="mt-2 mb-6">
+                <div class="text-slate-100 font-medium text-lg leading-relaxed" v-html="questions[currentIndex].text"></div>
+              </div>
 
-        <!-- Nav -->
-        <div class="mt-6 flex justify-between items-center">
-          <button @click="prev" 
-                  :disabled="currentIndex === 0" 
-                  class="px-5 py-2.5 border border-slate-600 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-500 hover:bg-slate-800/50 hover:scale-105">
-            上題
-          </button>
-          
-          <div class="flex items-center gap-3">
-            <div v-if="currentIndex < questions.length - 1">
-              <button @click="nextIfSelected" 
-                      class="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105">
-                下一題
-              </button>
-            </div>
-            <div v-else>
-              <button @click="finish" 
-                      class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105">
-                提交並看結果
-              </button>
+              <!-- 選項按鈕組 -->
+              <div class="space-y-3">
+                <button v-for="(opt, idx) in questions[currentIndex].options"
+                        :key="idx"
+                        @click="choose(idx)"
+                        class="group relative w-full text-left p-4 rounded-xl border transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
+                        :class="selected === idx ? 
+                          'bg-gradient-to-r from-cyan-500/25 via-blue-600/20 to-cyan-500/25 border-cyan-400/60 shadow-lg shadow-cyan-500/25' : 
+                          'border-slate-600/50 hover:border-slate-500/70 hover:bg-slate-800/50'">
+                  
+                  <!-- 選項字母標籤 -->
+                  <div class="absolute left-2 top-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-all duration-300"
+                       :class="selected === idx ? 'bg-cyan-400 text-slate-900' : 'bg-slate-700 text-slate-400 group-hover:bg-slate-600'">
+                    {{ String.fromCharCode(65 + idx) }}
+                  </div>
+                  
+                  <!-- 選中狀態的背景光效 -->
+                  <div v-if="selected === idx" class="absolute inset-0 bg-gradient-to-r from-cyan-400/5 via-transparent to-cyan-400/5 rounded-xl"></div>
+                  
+                  <!-- 選項文字 -->
+                  <div class="ml-8 font-medium text-slate-200 group-hover:text-slate-100 transition-colors duration-300">
+                    {{ opt }}
+                  </div>
+                  
+                  <!-- 選中指示器 -->
+                  <div v-if="selected === idx" class="absolute right-4 top-1/2 transform -translate-y-1/2">
+                    <div class="w-3 h-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 animate-pulse"></div>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+
+          <!-- 導航按鈕組優化版 -->
+          <div class="flex justify-between items-center">
+            <!-- 上一題按鈕 -->
+            <button @click="prev" 
+                    :disabled="currentIndex === 0" 
+                    class="flex items-center gap-2 px-6 py-3 border border-slate-600 rounded-xl font-medium transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-500 hover:bg-slate-800/50 hover:scale-105 disabled:hover:scale-100">
+              <span>←</span>
+              <span>上一題</span>
+            </button>
+            
+            <!-- 下一題/完成按鈕 -->
+            <div class="flex items-center gap-4">
+              <!-- 進度指示點 -->
+              <div class="hidden sm:flex items-center gap-1">
+                <div v-for="i in questions.length" :key="i" 
+                     class="w-2 h-2 rounded-full transition-all duration-300"
+                     :class="i <= currentIndex + 1 ? 'bg-cyan-400' : 'bg-slate-600'"></div>
+              </div>
+              
+              <!-- 主要操作按鈕 -->
+              <div v-if="currentIndex < questions.length - 1">
+                <button @click="nextIfSelected" 
+                        class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105">
+                  <span>下一題</span>
+                  <span>→</span>
+                </button>
+              </div>
+              <div v-else>
+                <button @click="finish" 
+                        class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105">
+                  <span>✨</span>
+                  <span>查看結果</span>
+                </button>
+              </div>
+            </div>
+          </div>
 
         </div>
       </div>

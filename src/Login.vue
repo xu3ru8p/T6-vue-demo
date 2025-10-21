@@ -62,7 +62,7 @@
         </h1>
         <span class="text-3xl md:text-5xl font-normal text-cyan-400 mb-2" style="text-shadow: 0 0 40px rgba(34, 211, 238, 0.8), 0 0 80px rgba(34, 211, 238, 0.4)">靈魂覺醒計畫</span>
         <p class="text-lg md:text-2xl text-gray-400 mb-8">
-          透過互動遊戲-預防簡訊詐騙-
+          Anti-Fraud Agent: The Soul Awakening
         </p>
 
         <!-- Buttons with icons -->

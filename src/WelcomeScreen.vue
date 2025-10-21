@@ -11,7 +11,7 @@
       <!-- <h1 class="title"> 詐騙高手</h1>
       <p class="subtitle">System access granted...</p> -->
       <h1 class="text-4xl font-bold text-cyan-400 drop-shadow-lg">想測試你能不能看穿詐騙簡訊的陷阱嗎？</h1>
-      <p class="text-lg text-cyan-200">System access granted...</p>
+      <p class="text-lg text-cyan-200">覺醒你的防詐靈魂，成為 TWM 特務的一員。</p>
     </div>
 
     <!-- 互動科技眼睛 -->
@@ -40,10 +40,10 @@
     <div class="flex justify-center items-center gap-4 w-full max-w-md mb-16">
       <!-- 一般 & 挑戰遊戲按鈕 -->
       <button @click="$emit('start', 'normal')" class="game-btn w-40 bg-cyan-700 hover:bg-cyan-500">
-        一般模式
+        新手挑戰
       </button>
       <button @click="$emit('start', 'challenge')" class="game-btn w-40 bg-purple-700 hover:bg-purple-500">
-        挑戰模式
+        極限挑戰
       </button>
       <!-- 返回按鈕（不改變排版） -->
       <button @click="$emit('back')" class="icon-btn bg-cyan-700 hover:bg-cyan-500 text-cyan-200" title="返回">

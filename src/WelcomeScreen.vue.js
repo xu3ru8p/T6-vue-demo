@@ -1,7 +1,7 @@
 import { reactive, ref, onMounted } from "vue";
 import axios from "axios";
-// ✅ 宣告 emit
-const emit = defineEmits(['start']);
+// ✅ 宣告 emit（包含 start 與 back）
+const emit = defineEmits(['start', 'back']);
 // ===========================
 // 互動眼睛設定
 // ===========================
@@ -197,6 +197,15 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             [$emit,];
         } },
     ...{ class: "game-btn w-40 bg-purple-700 hover:bg-purple-500" },
+});
+__VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
+    ...{ onClick: (...[$event]) => {
+            __VLS_ctx.$emit('back');
+            // @ts-ignore
+            [$emit,];
+        } },
+    ...{ class: "icon-btn bg-cyan-700 hover:bg-cyan-500 text-cyan-200" },
+    title: "返回",
 });
 __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
     ...{ onClick: (__VLS_ctx.openLeaderboard) },
@@ -395,6 +404,10 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 /** @type {__VLS_StyleScopedClasses['w-40']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-purple-700']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:bg-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['icon-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-cyan-700']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:bg-cyan-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-200']} */ ;
 /** @type {__VLS_StyleScopedClasses['icon-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-cyan-700']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:bg-cyan-600']} */ ;
