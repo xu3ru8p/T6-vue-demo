@@ -2,6 +2,7 @@
 class SoulAnimalStore {
   constructor() {
     this.storageKey = 'soul_animal_records'
+    this.gameScoreKey = 'game_scores' // 新增遊戲分數記錄鍵
     this.currentUser = null
   }
 
@@ -26,6 +27,135 @@ class SoulAnimalStore {
     } catch (error) {
       console.error('Failed to load soul animal records:', error)
       return {}
+    }
+  }
+
+  // 獲取所有遊戲分數記錄
+  getAllGameScores() {
+    try {
+      const data = localStorage.getItem(this.gameScoreKey)
+      return data ? JSON.parse(data) : {}
+    } catch (error) {
+      console.error('Failed to load game scores:', error)
+      return {}
+    }
+  }
+
+  // 獲取用戶的遊戲分數
+  getUserGameScore(username = this.currentUser) {
+    if (!username) return 0
+    
+    const allScores = this.getAllGameScores()
+    return allScores[username] || 0
+  }
+
+  // 添加遊戲分數（累計）
+  addGameScore(username, score) {
+    try {
+      const allScores = this.getAllGameScores()
+      const currentScore = allScores[username] || 0
+      allScores[username] = currentScore + score
+      
+      localStorage.setItem(this.gameScoreKey, JSON.stringify(allScores))
+      
+      console.log(`用戶 ${username} 的分數從 ${currentScore} 增加 ${score} 到 ${allScores[username]}`)
+      return allScores[username]
+    } catch (error) {
+      console.error('Failed to save game score:', error)
+      return 0
+    }
+  }
+
+  // 獲取排行榜數據（按分數排序）
+  getLeaderboard() {
+    try {
+      const allScores = this.getAllGameScores()
+      const leaderboard = Object.entries(allScores)
+        .map(([name, score]) => ({ name, score }))
+        .sort((a, b) => b.score - a.score) // 分數由高到低排序
+        .slice(0, 10) // 只取前10名
+      
+      return leaderboard
+    } catch (error) {
+      console.error('Failed to get leaderboard:', error)
+      return []
+    }
+  }
+
+  // 保存遊戲記錄（包含所有遊戲數據，不僅僅是錯題）
+  saveGameRecord(username, gameData) {
+    try {
+      const gameKey = 'game_records' // 改名為更通用的 game_records
+      const allRecords = JSON.parse(localStorage.getItem(gameKey) || '{}')
+      
+      if (!allRecords[username]) {
+        allRecords[username] = []
+      }
+      
+      const gameRecord = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        round: gameData.round,
+        score: gameData.score,
+        wrongAnswers: gameData.wrongAnswers || [],
+        mode: gameData.mode || 'normal',
+        hasErrors: (gameData.wrongAnswers && gameData.wrongAnswers.length > 0)
+      }
+      
+      allRecords[username].push(gameRecord)
+      localStorage.setItem(gameKey, JSON.stringify(allRecords))
+      
+      console.log(`遊戲記錄已保存: ${username}, 有錯題: ${gameRecord.hasErrors}`)
+      return true
+    } catch (error) {
+      console.error('Failed to save game record:', error)
+      return false
+    }
+  }
+
+  // 保存遊戲錯題記錄（保持向後兼容）
+  saveGameErrors(username, gameData) {
+    // 調用新的 saveGameRecord 方法
+    return this.saveGameRecord(username, gameData)
+  }
+
+  // 獲取用戶的遊戲記錄（新方法）
+  getUserGameRecords(username = this.currentUser) {
+    try {
+      const gameKey = 'game_records'
+      const allRecords = JSON.parse(localStorage.getItem(gameKey) || '{}')
+      
+      // 如果沒有新格式的記錄，嘗試從舊格式遷移
+      if (!allRecords[username]) {
+        const legacyErrors = this.getUserGameErrors(username)
+        if (legacyErrors && legacyErrors.length > 0) {
+          console.log(`為用戶 ${username} 遷移遊戲記錄格式`)
+          return legacyErrors
+        }
+      }
+      
+      return allRecords[username] || []
+    } catch (error) {
+      console.error('Failed to get game records:', error)
+      return []
+    }
+  }
+
+  // 獲取用戶的遊戲錯題記錄（保持向後兼容）
+  getUserGameErrors(username = this.currentUser) {
+    try {
+      const errorKey = 'game_errors'
+      const allErrors = JSON.parse(localStorage.getItem(errorKey) || '{}')
+      return allErrors[username] || []
+    } catch (error) {
+      console.error('Failed to get game errors:', error)
+      return []
     }
   }
 

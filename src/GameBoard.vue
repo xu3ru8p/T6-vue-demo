@@ -8,7 +8,7 @@
       剩餘時間: {{ timeLeft }} 秒
     </div>
 
-    <h2>找出唯一的真實訊息</h2>
+    <h2>找出唯一的詐騙訊息</h2>
 
     <div class="cards">
       <div
@@ -17,8 +17,8 @@
         class="card"
         :class="{
           selected: selectedMessage && selectedMessage.id === msg.id,
-          correct: showResult && selectedMessage?.id === msg.id && !msg.isScam,
-          wrong: showResult && selectedMessage?.id === msg.id && msg.isScam,
+          correct: showResult && selectedMessage?.id === msg.id && msg.isScam,
+          wrong: showResult && selectedMessage?.id === msg.id && !msg.isScam,
           urgent: dangerLevel === 2 && timeLeft <= 3
         }"
         @click="selectMessage(msg)"
@@ -209,12 +209,13 @@ export default {
         (m) => m.type === type && !usedIds.value.has(m.id)
       );
 
-      if (scamsOfType.length < 2 || realsOfType.length < 1) {
+      // 改成兩真一假：需要1則詐騙簡訊和2則真實簡訊
+      if (scamsOfType.length < 1 || realsOfType.length < 2) {
         return initGame(); // 該類型不足重新挑
       }
 
-      const selectedScams = getRandomItems(scamsOfType, 2);
-      const selectedReal = getRandomItems(realsOfType, 1);
+      const selectedScams = getRandomItems(scamsOfType, 1); // 挑1則詐騙簡訊
+      const selectedReal = getRandomItems(realsOfType, 2);  // 挑2則真實簡訊
 
       const roundMessages = shuffleArray([...selectedScams, ...selectedReal]);
 
@@ -234,11 +235,11 @@ export default {
       selectedMessage.value = msg;
       showResult.value = true;
 
-      const correct = !msg.isScam; // 正確答案判斷
+      const correct = msg.isScam; // 改為：選中詐騙訊息才是正確答案
 
  // ---------- 新增：選擇後若答錯就記錄 id（放在 selectMessage 內，判斷 correct 之後） ----------
 if (!correct) {
-  // 避免重複加入：若 id 尚未存在才加入
+  // 現在答錯意味著選到了真實訊息，記錄該真實訊息的 id
   if (!wrongIds.value.includes(msg.id)) {
     wrongIds.value.push(msg.id)
     console.log('GameBoard: 記錄錯誤選擇ID:', msg.id, '當前錯題列表:', wrongIds.value);

@@ -5,10 +5,11 @@
     <p>回合: {{ round }}/5</p>
     <p>分數: {{ score }}</p>
 
-    <!-- ✅ 玩家提交分數（保留原本行為） -->
-    <div class="leaderboard-input">
-      <input type="text" v-model="playerName" placeholder="Your Name" />
-      <button @click="submitScore" :disabled="!playerName || submitted">提交分數</button>
+    <!-- ✅ 顯示當前登錄用戶及分數提交狀態 -->
+    <div class="user-score-info">
+      <p class="current-user">玩家: {{ currentUser }}</p>
+      <p v-if="scoreSubmitted" class="submit-status success">✅ 分數已記錄！總分: {{ totalUserScore }}</p>
+      <p v-else class="submit-status">⏳ 正在記錄分數...</p>
     </div>
 
     <!-- ✅ 錯誤題目回顧（若無錯題就不顯示） -->
@@ -28,7 +29,7 @@
     <!-- 如果沒有錯題，顯示提示文字 -->
     <div v-else class="perfect-text">🎉 完美通關！無錯題！</div>
 
-    <!-- ✅ 排行榜（保持原本內容與位置） -->
+    <!-- ✅ 排行榜（顯示來自 soulAnimalStore 的數據） -->
     <h3>排行榜</h3>
     <ol class="leaderboard">
       <li v-for="(entry, index) in leaderboard" :key="index">
@@ -37,6 +38,11 @@
         <span class="score">{{ entry.score }} 分</span>
       </li>
     </ol>
+
+    <!-- 如果排行榜為空的情況 -->
+    <div v-if="leaderboard.length === 0" class="empty-leaderboard">
+      <p>尚無排行榜記錄</p>
+    </div>
 
     <!-- ✅ 回首頁（保留原本事件） -->
     <button class="restart" @click="$emit('restart')">回首頁</button>
@@ -51,6 +57,7 @@ import axios from "axios";
 // 同時引入 scam 與 real（若有）；若只有 scamMessages 也可工作
 import { scamMessages } from "../database";
 import { realMessages } from "../database_true"; // 如果沒有此檔案，可刪或保留並確保路徑正確
+import soulAnimalStore from './soulAnimalStore.js'; // 引入 soulAnimalStore
 
 export default {
   name: "GameResults",
@@ -60,51 +67,72 @@ export default {
     wrongIds: { // 傳入錯誤題目 ID 陣列 (可能是 number 或 string)
       type: Array,
       default: () => []
+    },
+    currentUser: { // 新增 currentUser prop
+      type: String,
+      required: true
     }
   },
   emits: ["restart"],
   data() {
     return {
-      playerName: "",
       leaderboard: [],
-      submitted: false,
-      wrongAnswers: []
+      wrongAnswers: [],
+      scoreSubmitted: false,
+      totalUserScore: 0
     };
   },
   methods: {
-    async fetchLeaderboard() {
-      try {
-        const res = await axios.get("http://localhost:3000/leaderboard");
-        this.leaderboard = res.data;
-      } catch (err) {
-        console.error("取得排行榜失敗", err);
-      }
-    },
-    async submitScore() {
-      if (!this.playerName) return;
-      try {
-        const res = await axios.post("http://localhost:3000/leaderboard", {
-          name: this.playerName,
-          score: this.score
-        });
-        if (res.data.success) {
-          this.leaderboard = res.data.leaderboard;
-          this.submitted = true;
+    async submitScoreToStore() {
+      // 自動將分數記錄到 soulAnimalStore
+      if (this.currentUser && this.score > 0) {
+        try {
+          this.totalUserScore = soulAnimalStore.addGameScore(this.currentUser, this.score);
+          this.scoreSubmitted = true;
+          
+          // 保存遊戲記錄（包括分數、錯題等所有數據）
+          const gameData = {
+            round: this.round,
+            score: this.score,
+            wrongAnswers: this.wrongAnswers,
+            mode: 'normal' // 可以根據需要傳遞遊戲模式
+          };
+          
+          // 使用新的 saveGameRecord 方法來保存完整的遊戲記錄
+          if (soulAnimalStore.saveGameRecord) {
+            soulAnimalStore.saveGameRecord(this.currentUser, gameData);
+          } else {
+            // 向後兼容：如果沒有新方法，使用舊方法
+            soulAnimalStore.saveGameErrors(this.currentUser, gameData);
+          }
+          
+          // 更新排行榜
+          this.loadLeaderboard();
+          
+          console.log(`分數已記錄: ${this.currentUser} +${this.score} 分，總分: ${this.totalUserScore}`);
+          console.log(`遊戲記錄已保存: ${this.wrongAnswers.length} 個錯題`);
+        } catch (error) {
+          console.error('記錄分數失敗:', error);
         }
-      } catch (err) {
-        console.error("提交分數失敗", err);
       }
     },
+    
+    loadLeaderboard() {
+      // 從 soulAnimalStore 載入排行榜
+      this.leaderboard = soulAnimalStore.getLeaderboard();
+      console.log('排行榜已更新:', this.leaderboard);
+    },
+    
     loadWrongQuestions() {
       console.log('GameResults: 開始載入錯題，接收到的wrongIds:', this.wrongIds);
       
-      // 只從詐騙簡訊中載入錯題（因為錯誤的選擇通常是選到詐騙簡訊）
-      const scamArray = Array.isArray(scamMessages) ? scamMessages : [];
-      console.log('GameResults: 可用的詐騙簡訊數量:', scamArray.length);
+      // 現在從真實簡訊中載入錯題（因為錯誤的選擇是選到真實簡訊）
+      const realArray = Array.isArray(realMessages) ? realMessages : [];
+      console.log('GameResults: 可用的真實簡訊數量:', realArray.length);
       
       // 容錯：將 wrongIds 與 msg.id 都轉成字串比較（避免 number/string mismatch）
       const wrongIdStrs = this.wrongIds.map((id) => String(id));
-      this.wrongAnswers = scamArray.filter((msg) => wrongIdStrs.includes(String(msg.id)));
+      this.wrongAnswers = realArray.filter((msg) => wrongIdStrs.includes(String(msg.id)));
 
       console.log('GameResults: 錯題ID字串陣列:', wrongIdStrs);
       console.log('GameResults: 找到的錯題數量:', this.wrongAnswers.length);
@@ -112,8 +140,15 @@ export default {
     }
   },
   mounted() {
-    this.fetchLeaderboard();
+    // 設定當前用戶到 store
+    soulAnimalStore.setCurrentUser(this.currentUser);
+    
+    // 載入錯題和排行榜
     this.loadWrongQuestions();
+    this.loadLeaderboard();
+    
+    // 自動提交分數
+    this.submitScoreToStore();
   },
   watch: {
     wrongIds: {
@@ -146,6 +181,32 @@ export default {
   font-size: 1.3rem;
   margin-bottom: 25px;
   text-shadow: 0 0 5px #00ffcc;
+}
+
+/* 用戶分數資訊樣式 */
+.user-score-info {
+  margin: 20px 0;
+  padding: 15px;
+  background: rgba(0, 255, 204, 0.1);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 255, 204, 0.3);
+}
+
+.current-user {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #00ffcc;
+  margin-bottom: 5px;
+}
+
+.submit-status {
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.submit-status.success {
+  color: #00ff88;
+  font-weight: bold;
 }
 
 .leaderboard-input {
@@ -238,6 +299,13 @@ export default {
   margin: 20px 0;
   color: #00ffcc;
   font-weight: bold;
+}
+
+/* 空排行榜提示 */
+.empty-leaderboard {
+  margin: 20px 0;
+  color: #888;
+  font-style: italic;
 }
 
 /* 其餘保持原樣（排行榜、回首頁等） */

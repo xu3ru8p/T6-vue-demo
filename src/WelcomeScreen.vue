@@ -33,7 +33,7 @@
     <!-- 文字說明 -->
     <div class="text-center mb-2">
       <h2 class="text-3xl font-bold text-cyan-300 drop-shadow-lg">歡迎來到詐騙寶島</h2>
-      <p class="text-lg text-cyan-200">請找出唯一的真實訊息...</p>
+      <p class="text-lg text-cyan-200">請找出唯一的詐騙訊息...</p>
     </div>
 
     <!-- 難度選擇按鈕 + 小圖示按鈕區（排行榜與管理員） -->

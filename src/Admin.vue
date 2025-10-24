@@ -50,7 +50,7 @@
               <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">總用戶數</span>
               <Users :size="20" class="text-blue-500" />
             </div>
-            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">12,458</p>
+            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">{{ members.length }}</p>
             <p class="text-sm text-green-500 mt-2">↑ 12.5%</p>
           </div>
           <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
@@ -104,6 +104,143 @@
                 <button class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm">編輯</button>
                 <button class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm">刪除</button>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Members Management -->
+      <div v-if="activeMenu === 'members'">
+        <h2 :class="['text-3xl font-bold mb-6 transition-colors duration-300', currentThemeStyles.text]">會員管理</h2>
+        
+        <!-- 會員統計卡片 -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+          <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
+            <div class="flex items-center justify-between mb-2">
+              <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">總會員數</span>
+              <Users :size="20" class="text-blue-500" />
+            </div>
+            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">{{ members.length }}</p>
+            <p class="text-sm text-green-500 mt-2">活躍會員</p>
+          </div>
+          <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
+            <div class="flex items-center justify-between mb-2">
+              <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">管理員</span>
+              <Shield :size="20" class="text-purple-500" />
+            </div>
+            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">{{ members.filter(m => m.type === 'admin').length }}</p>
+            <p class="text-sm text-blue-500 mt-2">系統管理</p>
+          </div>
+          <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
+            <div class="flex items-center justify-between mb-2">
+              <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">分析師</span>
+              <Activity :size="20" class="text-green-500" />
+            </div>
+            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">{{ members.filter(m => m.type === 'analyt').length }}</p>
+            <p class="text-sm text-green-500 mt-2">數據分析</p>
+          </div>
+          <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
+            <div class="flex items-center justify-between mb-2">
+              <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">一般用戶</span>
+              <Users :size="20" class="text-yellow-500" />
+            </div>
+            <p :class="['text-3xl font-bold transition-colors duration-300', currentThemeStyles.text]">{{ members.filter(m => m.type === 'user').length }}</p>
+            <p class="text-sm text-yellow-500 mt-2">註冊用戶</p>
+          </div>
+        </div>
+
+        <!-- 會員列表 -->
+        <div :class="['rounded-xl p-6 border transition-all duration-300', currentThemeStyles.card]">
+          <div class="flex justify-between items-center mb-6">
+            <h3 :class="['text-xl font-semibold transition-colors duration-300', currentThemeStyles.text]">會員列表</h3>
+            <div class="flex gap-3">
+              <input
+                type="text"
+                placeholder="搜尋會員..."
+                :class="['px-4 py-2 rounded-lg w-64 transition-all duration-300', currentThemeStyles.input]"
+              />
+              <button :class="['px-4 py-2 rounded-lg transition-all duration-300', currentThemeStyles.activeButton, currentThemeStyles.text]">
+                新增會員
+              </button>
+            </div>
+          </div>
+
+          <!-- 會員表格 -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr :class="['border-b transition-colors duration-300', currentTheme === 'light' ? 'border-gray-200' : 'border-gray-700']">
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">ID</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">帳號名稱</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">電子郵件</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">類型</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">狀態</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">註冊時間</th>
+                  <th :class="['text-left py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.textSecondary]">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="member in members" 
+                  :key="member.id" 
+                  :class="['border-b transition-colors duration-300 hover:bg-opacity-50', 
+                          currentTheme === 'light' ? 'border-gray-100 hover:bg-gray-100' : 'border-gray-800 hover:bg-gray-800']"
+                >
+                  <td :class="['py-3 px-4 transition-colors duration-300', currentThemeStyles.text]">{{ member.id }}</td>
+                  <td :class="['py-3 px-4 font-medium transition-colors duration-300', currentThemeStyles.text]">{{ member.username }}</td>
+                  <td :class="['py-3 px-4 transition-colors duration-300', currentThemeStyles.textSecondary]">{{ member.email }}</td>
+                  <td class="py-3 px-4">
+                    <span :class="[
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                      member.type === 'admin' ? 'bg-purple-100 text-purple-800' :
+                      member.type === 'analyt' ? 'bg-green-100 text-green-800' :
+                      'bg-blue-100 text-blue-800'
+                    ]">
+                      {{ getMemberTypeLabel(member.type) }}
+                    </span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span :class="['text-sm font-medium', getStatusColor(member.status)]">
+                      {{ member.status === 'active' ? '活躍' : member.status === 'inactive' ? '未活躍' : '停權' }}
+                    </span>
+                  </td>
+                  <td :class="['py-3 px-4 text-sm transition-colors duration-300', currentThemeStyles.textSecondary]">
+                    {{ formatDate(member.registeredAt) }}
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="flex gap-2">
+                      <button 
+                        @click="editMember(member)"
+                        class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+                      >
+                        編輯
+                      </button>
+                      <button 
+                        @click="updateMemberStatus(member.id, member.status === 'active' ? 'inactive' : 'active')"
+                        :class="[
+                          'px-3 py-1 text-xs rounded transition-colors',
+                          member.status === 'active' ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'
+                        ]"
+                      >
+                        {{ member.status === 'active' ? '停用' : '啟用' }}
+                      </button>
+                      <button 
+                        @click="deleteMember(member.id)"
+                        class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs transition-colors"
+                      >
+                        刪除
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <!-- 空狀態 -->
+            <div v-if="members.length === 0" class="text-center py-12">
+              <Users :size="48" :class="['mx-auto mb-4 transition-colors duration-300', currentThemeStyles.textSecondary]" />
+              <p :class="['text-lg font-medium transition-colors duration-300', currentThemeStyles.text]">尚無會員資料</p>
+              <p :class="['text-sm transition-colors duration-300', currentThemeStyles.textSecondary]">等待用戶註冊或手動新增會員</p>
             </div>
           </div>
         </div>
@@ -428,18 +565,330 @@
         </div>
       </div>
     </div>
+
+    <!-- 編輯會員模態框 -->
+    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div :class="['rounded-xl p-6 w-96 max-w-lg mx-4 transition-all duration-300', currentThemeStyles.card]">
+        <h3 :class="['text-xl font-semibold mb-4 transition-colors duration-300', currentThemeStyles.text]">編輯會員資料</h3>
+        
+        <div class="space-y-4">
+          <!-- 帳號名稱 -->
+          <div>
+            <label :class="['block text-sm font-medium mb-2 transition-colors duration-300', currentThemeStyles.textSecondary]">帳號名稱</label>
+            <input 
+              v-model="editingMember.username"
+              type="text"
+              :class="['w-full px-3 py-2 rounded-lg transition-all duration-300', currentThemeStyles.input]"
+              placeholder="請輸入帳號名稱"
+            />
+          </div>
+          
+          <!-- 電子郵件 -->
+          <div>
+            <label :class="['block text-sm font-medium mb-2 transition-colors duration-300', currentThemeStyles.textSecondary]">電子郵件</label>
+            <input 
+              v-model="editingMember.email"
+              type="email"
+              :class="['w-full px-3 py-2 rounded-lg transition-all duration-300', currentThemeStyles.input]"
+              placeholder="請輸入電子郵件"
+            />
+          </div>
+          
+          <!-- 會員類型 -->
+          <div>
+            <label :class="['block text-sm font-medium mb-2 transition-colors duration-300', currentThemeStyles.textSecondary]">會員類型</label>
+            <select 
+              v-model="editingMember.type"
+              :class="['w-full px-3 py-2 rounded-lg transition-all duration-300', currentThemeStyles.input]"
+            >
+              <option value="user">一般用戶</option>
+              <option value="analyt">分析師</option>
+              <option value="admin">管理員</option>
+            </select>
+          </div>
+          
+          <!-- 不可編輯資訊 -->
+          <div class="pt-4 border-t" :class="currentTheme === 'light' ? 'border-gray-200' : 'border-gray-700'">
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">ID：</span>
+                <span :class="['transition-colors duration-300', currentThemeStyles.text]">{{ editingMember.id }}</span>
+              </div>
+              <div>
+                <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">狀態：</span>
+                <span :class="['transition-colors duration-300', getStatusColor(editingMember.status)]">
+                  {{ editingMember.status === 'active' ? '活躍' : editingMember.status === 'inactive' ? '未活躍' : '停權' }}
+                </span>
+              </div>
+              <div class="col-span-2">
+                <span :class="['transition-colors duration-300', currentThemeStyles.textSecondary]">註冊時間：</span>
+                <span :class="['transition-colors duration-300', currentThemeStyles.text]">{{ formatDate(editingMember.registeredAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 按鈕 -->
+        <div class="flex justify-end gap-3 mt-6">
+          <button 
+            @click="closeEditModal"
+            :class="['px-4 py-2 rounded-lg transition-all duration-300', currentThemeStyles.textSecondary, currentThemeStyles.cardHover]"
+          >
+            取消
+          </button>
+          <button 
+            @click="saveEdit"
+            :class="['px-4 py-2 rounded-lg transition-all duration-300', currentThemeStyles.activeButton, currentThemeStyles.text]"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { LayoutDashboard, MessageSquare, Settings, Users, Code, BarChart3, Gamepad2, Activity, Shield, TrendingUp } from 'lucide-vue-next'
 
 // 定義 emit 事件
 const emit = defineEmits(['back'])
 
+// 定義 props 接收用戶資料
+const props = defineProps({
+  newUserData: {
+    type: Object,
+    default: null
+  }
+})
+
 const activeMenu = ref('dashboard')
 const currentTheme = ref('dark') // 當前主題
+
+// 會員資料管理
+const members = ref([])
+const editingMember = ref(null)
+const showEditModal = ref(false)
+
+// 監聽新用戶註冊
+onMounted(() => {
+  loadAllMembers()
+  
+  // 如果有新用戶資料，加入到會員列表
+  if (props.newUserData) {
+    addNewMember(props.newUserData)
+  }
+})
+
+// 從所有存儲的數據中載入會員
+const loadAllMembers = () => {
+  const allMembers = []
+  
+  // 預設管理員帳號 (ID=0)
+  allMembers.push({
+    id: 0,
+    username: 'test',
+    email: 'test@example.com',
+    password: '123',
+    type: 'admin',
+    registeredAt: '2024-10-01T10:00:00.000Z',
+    status: 'active'
+  })
+  
+  // 預設分析師帳號 (ID=1)
+  allMembers.push({
+    id: 1,
+    username: 'white',
+    email: 'white@example.com',
+    password: '123',
+    type: 'analyt',
+    registeredAt: '2024-10-01T11:00:00.000Z',
+    status: 'active'
+  })
+  
+  let nextId = 2
+  
+  // 1. 從 registeredUsers 載入註冊的用戶
+  const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+  registeredUsers.forEach(user => {
+    // 檢查是否已經存在於預設帳號中
+    const existingInDefaults = allMembers.find(m => m.username === user.username)
+    if (!existingInDefaults) {
+      allMembers.push({
+        id: nextId++,
+        username: user.username,
+        email: user.email || `${user.username}@example.com`,
+        password: user.password || '123',
+        type: user.type || 'user',
+        registeredAt: user.registeredAt || new Date().toISOString(),
+        status: user.status || 'active'
+      })
+    }
+  })
+  
+  // 2. 從 localStorage 獲取有遊戲活動記錄的用戶
+  const possibleUsers = ['lee222', 'lee555', 'alice', 'bob', 'charlie', 'diana', 'eva', 'frank', 'grace', 'henry']
+  
+  possibleUsers.forEach(username => {
+    // 檢查是否存在用戶的靈魂動物測驗記錄
+    const soulAnimalKey = `soulAnimalHistory_${username}`
+    const gameRecordKey = `gameRecords_${username}`
+    const scoreKey = `userGameScores`
+    
+    const hasSoulAnimalRecord = localStorage.getItem(soulAnimalKey)
+    const hasGameRecord = localStorage.getItem(gameRecordKey)
+    const scores = JSON.parse(localStorage.getItem(scoreKey) || '{}')
+    const hasScore = scores[username] !== undefined
+    
+    // 如果用戶有任何記錄，且還不在會員列表中
+    if ((hasSoulAnimalRecord || hasGameRecord || hasScore)) {
+      const existingMember = allMembers.find(m => m.username === username)
+      if (!existingMember) {
+        allMembers.push({
+          id: nextId++,
+          username: username,
+          email: `${username}@example.com`, // 預設 email
+          password: '123', // 預設密碼
+          type: 'user',
+          registeredAt: new Date().toISOString(),
+          status: 'active'
+        })
+      }
+    }
+  })
+  
+  // 3. 從管理員手動設定的會員列表載入
+  const savedMembers = localStorage.getItem('adminMembers')
+  if (savedMembers) {
+    const savedMembersList = JSON.parse(savedMembers)
+    savedMembersList.forEach(savedMember => {
+      const existing = allMembers.find(m => m.username === savedMember.username)
+      if (!existing) {
+        // 確保 ID 是數字且不重複
+        const maxId = Math.max(...allMembers.map(m => m.id), nextId - 1)
+        allMembers.push({
+          ...savedMember,
+          id: maxId + 1
+        })
+      } else {
+        // 更新現有會員的資訊（但保留 ID）
+        Object.assign(existing, savedMember, { id: existing.id })
+      }
+    })
+  }
+  
+  // 重新排序 ID
+  allMembers.sort((a, b) => a.id - b.id)
+  allMembers.forEach((member, index) => {
+    if (member.username === 'test') {
+      member.id = 0 // 管理員永遠是 ID 0
+    } else if (member.username === 'white') {
+      member.id = 1 // 分析師是 ID 1
+    } else {
+      member.id = index < 2 ? index + 2 : index
+    }
+  })
+  
+  members.value = allMembers
+  saveMembers()
+}
+
+// 新增會員
+const addNewMember = (userData) => {
+  // 檢查是否已存在
+  const existingMember = members.value.find(m => m.username === userData.username || m.email === userData.email)
+  if (!existingMember) {
+    // 計算新的 ID
+    const maxId = Math.max(...members.value.map(m => m.id), -1)
+    const newMember = {
+      ...userData,
+      id: maxId + 1
+    }
+    members.value.push(newMember)
+    saveMembers()
+  }
+}
+
+// 儲存會員資料到 localStorage
+const saveMembers = () => {
+  localStorage.setItem('adminMembers', JSON.stringify(members.value))
+}
+
+// 刪除會員
+const deleteMember = (memberId) => {
+  if (confirm('確定要刪除這個會員嗎？')) {
+    members.value = members.value.filter(m => m.id !== memberId)
+    saveMembers()
+  }
+}
+
+// 更新會員狀態
+const updateMemberStatus = (memberId, newStatus) => {
+  const member = members.value.find(m => m.id === memberId)
+  if (member) {
+    member.status = newStatus
+    saveMembers()
+  }
+}
+
+// 格式化日期
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 獲取會員類型標籤
+const getMemberTypeLabel = (type) => {
+  const labels = {
+    'admin': '管理員',
+    'analyt': '分析師',
+    'user': '一般用戶'
+  }
+  return labels[type] || '未知'
+}
+
+// 獲取狀態顏色
+const getStatusColor = (status) => {
+  const colors = {
+    'active': 'text-green-400',
+    'inactive': 'text-gray-400',
+    'suspended': 'text-red-400'
+  }
+  return colors[status] || 'text-gray-400'
+}
+
+// 編輯會員
+const editMember = (member) => {
+  editingMember.value = { ...member } // 創建副本避免直接修改
+  showEditModal.value = true
+}
+
+// 保存編輯
+const saveEdit = () => {
+  if (editingMember.value) {
+    const index = members.value.findIndex(m => m.id === editingMember.value.id)
+    if (index !== -1) {
+      // 只允許修改特定欄位
+      members.value[index].username = editingMember.value.username
+      members.value[index].email = editingMember.value.email
+      members.value[index].type = editingMember.value.type
+      saveMembers()
+    }
+  }
+  closeEditModal()
+}
+
+// 取消編輯
+const closeEditModal = () => {
+  editingMember.value = null
+  showEditModal.value = false
+}
 
 // 主題配色方案
 const themes = {
@@ -508,6 +957,7 @@ const setTheme = (themeName) => {
 const menuItems = [
   { id: 'dashboard', label: '數據分析', icon: LayoutDashboard },
   { id: 'sms', label: '簡訊資料庫', icon: MessageSquare },
+  { id: 'members', label: '會員管理', icon: Users },
   { id: 'api', label: 'API 設置', icon: Settings },
   { id: 'code', label: '程式碼管理', icon: Code },
   { id: 'traffic', label: '流量監測', icon: BarChart3 },

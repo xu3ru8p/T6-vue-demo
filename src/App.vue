@@ -9,12 +9,15 @@
   <!--起始頁-->
   <Login v-if="!gameStarted && !gameEnded && !showWelcome && !showAnalyt && !showLoginALG && !showVoiceRecognition && !showAdmin" 
   :hasCompletedQuiz="hasCompletedQuiz"
+  :currentUser="currentUser"
+  :isLoggedIn="isAnalytLoggedIn"
   @goToWelcome="goToWelcome" 
   @startQuizOrGame="handleStartQuizOrGame"
   @onQuizCompleted="onQuizCompleted"
   @openProfile="openAnalyt" 
   @goToLogin="goToLoginALG"
-  @goToVoiceRecognition="goToVoiceRecognition" />
+  @goToVoiceRecognition="goToVoiceRecognition"
+  @logout="handleLogout" />
       
       
       <!-- Welcome 畫面 -->
@@ -25,7 +28,7 @@
       />
 
   <!-- Analyt 測試頁（由 Login 的頭像打開） -->
-  <Analyt v-if="!gameStarted && !gameEnded && showAnalyt && !showAdmin" @close="closeAnalyt" :currentUser="currentUser" />
+  <Analyt v-if="!gameStarted && !gameEnded && showAnalyt && !showAdmin" @close="closeAnalyt" @logout="handleLogout" :currentUser="currentUser" />
 
   <!-- Login_ALG 頁面 -->
   <LoginALG v-if="!gameStarted && !gameEnded && showLoginALG && !showAdmin" @back="closeLoginALG" @loginSuccess="handleLoginSuccess" @analytSuccess="handleAnalytSuccess" />
@@ -34,7 +37,7 @@
   <VoiceRecognition v-if="!gameStarted && !gameEnded && showVoiceRecognition && !showAdmin" @back="closeVoiceRecognition" />
 
   <!-- Admin 管理頁面 -->
-  <Admin v-if="!gameStarted && !gameEnded && showAdmin" @back="closeAdmin" />
+  <Admin v-if="!gameStarted && !gameEnded && showAdmin" @back="closeAdmin" :newUserData="newUserData" />
 
       <!-- 遊戲進行中 -->
       <GameBoard 
@@ -54,6 +57,7 @@
         :score="score"
         @restart="restartGame"
         :wrongIds="wrongIdsForResults"
+        :currentUser="currentUser"
       />
     </main>
   </div>
@@ -85,6 +89,7 @@ const wrongIdsForResults = ref([]); // <- 新增
 const isAnalytLoggedIn = ref(false); // 新增：Analyt登入狀態
 const hasCompletedQuiz = ref(false); // 新增：追蹤是否完成過測驗
 const currentUser = ref('guest'); // 新增：當前用戶
+const newUserData = ref(null); // 新增：儲存新註冊的用戶資料
 
 
 function goToWelcome() {
@@ -156,6 +161,20 @@ function closeAnalyt() {
   // 注意：不重置 isAnalytLoggedIn.value，保持登入狀態
 }
 
+// 新增：處理登出功能
+function handleLogout() {
+  // 重置所有登入相關狀態
+  isAnalytLoggedIn.value = false
+  currentUser.value = 'guest'
+  hasCompletedQuiz.value = false  // 重置測驗完成狀態
+  
+  // 關閉分析頁面
+  showAnalyt.value = false
+  
+  // 直接登出，不顯示提示
+  console.log('用戶已登出，回到登入頁面')
+}
+
 function goToLoginALG() {
   showLoginALG.value = true
 }
@@ -174,9 +193,39 @@ function closeVoiceRecognition() {
 
 function handleLoginSuccess(userInfo) {
   console.log('登入成功:', userInfo)
-  // 關閉登入頁面，打開管理頁面
+  
+  // 設置登入狀態和用戶資訊
+  isAnalytLoggedIn.value = true
+  currentUser.value = userInfo.username
+  
+  // 如果有新用戶資料，儲存到 newUserData
+  if (userInfo.userData) {
+    newUserData.value = userInfo.userData
+    console.log('新用戶註冊:', userInfo.userData)
+  }
+  
+  // 轉移 guest 用戶的記錄到實際登錄用戶
+  const transferred = soulAnimalStore.transferRecords('guest', userInfo.username)
+  if (transferred) {
+    console.log(`已轉移 guest 記錄至 ${userInfo.username}`)
+  }
+  
+  // 檢查用戶是否已經完成過測驗
+  const userRecords = soulAnimalStore.getUserRecords(userInfo.username)
+  hasCompletedQuiz.value = userRecords && userRecords.length > 0
+  console.log(`用戶 ${userInfo.username} 測驗完成狀態: ${hasCompletedQuiz.value}`)
+  
+  // 關閉登入頁面
   showLoginALG.value = false
-  showAdmin.value = true
+  
+  // 根據用戶類型和用戶名決定跳轉
+  if (userInfo.username === 'test' && userInfo.type === 'admin') {
+    // 只有 test 帳號才能進入管理後台
+    showAdmin.value = true
+  } else {
+    // 其他所有用戶（包括新註冊的用戶）都跳轉到個人頁面
+    showAnalyt.value = true
+  }
 }
 
 function handleAnalytSuccess(userInfo) {
@@ -192,14 +241,27 @@ function handleAnalytSuccess(userInfo) {
   isAnalytLoggedIn.value = true
   // 保存當前用戶
   currentUser.value = userInfo.username
+  
+  // 檢查用戶是否已經完成過測驗
+  const userRecords = soulAnimalStore.getUserRecords(userInfo.username)
+  hasCompletedQuiz.value = userRecords && userRecords.length > 0
+  console.log(`用戶 ${userInfo.username} 測驗完成狀態: ${hasCompletedQuiz.value}`)
+  
   // 關閉登入頁面，打開分析頁面
   showLoginALG.value = false
   showAnalyt.value = true
 }
 
 function closeAdmin() {
+  // 關閉 Admin 頁面並執行完整登出
   showAdmin.value = false
   showLoginALG.value = false
+  
+  // 重置登入狀態
+  isAnalytLoggedIn.value = false
+  currentUser.value = 'guest'
+  
+  console.log('管理員已登出，回到主頁面')
 }
 // 接收 GameBoard emit 的錯題 id
 function onWrongIds(ids) {
