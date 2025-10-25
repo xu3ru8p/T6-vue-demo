@@ -39,7 +39,8 @@
 
     <!-- 右上角使用者按鈕 -->
     <div class="absolute top-6 right-8 z-20">
-      <button @click="$emit('openProfile')" aria-label="開啟使用者設定" class="avatar-btn btn btn-sm btn-style-1 w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-cyan-400 focus:outline-none">
+      <!-- 未登入狀態 -->
+      <button v-if="!props.isLoggedIn" @click="$emit('openProfile')" aria-label="開啟使用者設定" class="avatar-btn btn btn-sm btn-style-1 w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-cyan-400 focus:outline-none">
         <span class="avatar-inner">
           <img v-if="!useFallback && avatarSrc" :src="avatarSrc" alt="avatar" class="avatar-img" @error="onAvatarError" />
           <span v-else class="avatar-frame" aria-hidden="true">
@@ -51,6 +52,42 @@
           </span>
         </span>
       </button>
+      
+      <!-- 已登入狀態 - 用戶信息下拉選單 -->
+      <div v-else class="relative">
+        <button @click="toggleUserMenu" aria-label="用戶選單" class="avatar-btn btn btn-sm btn-style-1 w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-green-400 focus:outline-none hover:border-green-300 transition-colors">
+          <span class="avatar-inner">
+            <img v-if="!useFallback && avatarSrc" :src="avatarSrc" alt="avatar" class="avatar-img" @error="onAvatarError" />
+            <span v-else class="avatar-frame" aria-hidden="true">
+              <svg class="avatar-img-svg" viewBox="0 0 1314 1024" xmlns="http://www.w3.org/2000/svg" role="img">
+                <path d="M503.315257 277.467529m-277.467528 0a277.467529 277.467529 0 1 0 554.935057 0 277.467529 277.467529 0 1 0-554.935057 0Z" fill="#10b981"></path>
+                <path d="M679.675502 662.61698H326.955013A327.887901 327.887901 0 0 0 0 989.571993a34.516854 34.516854 0 0 0 34.428007 34.428007h937.818924a34.516854 34.516854 0 0 0 34.428007-34.428007 327.887901 327.887901 0 0 0-326.999436-326.955013zM771.142944 463.512039a204.835539 204.835539 0 1 0 49.754024-275.42406 310.074183 310.074183 0 0 1-49.754024 275.42406z" fill="#10b981"></path>
+                <path d="M1073.531908 633.65303H812.945208c-6.752332 0-13.326971 0.355386-20.079302 0.888465a363.648605 363.648605 0 0 1 259.520541 265.873064h236.997961A25.498937 25.498937 0 0 0 1314.927769 875.137738a242.106633 242.106633 0 0 0-241.395861-241.484708z" fill="#10b981"></path>
+              </svg>
+            </span>
+          </span>
+        </button>
+        
+        <!-- 用戶信息下拉選單 -->
+        <div v-if="showUserMenu" class="absolute top-20 right-0 bg-gray-900/95 backdrop-blur-xl rounded-lg shadow-2xl border border-gray-700 w-64 p-4 z-30">
+          <div class="text-center mb-4">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
+              <span class="text-white font-bold text-lg">{{ props.currentUser.charAt(0).toUpperCase() }}</span>
+            </div>
+            <h3 class="text-white font-semibold">{{ props.currentUser }}</h3>
+            <p class="text-gray-400 text-sm">已登入</p>
+          </div>
+          
+          <div class="space-y-2">
+            <button @click="$emit('openProfile')" class="w-full px-4 py-2 text-left text-gray-300 hover:text-white hover:bg-gray-800 rounded transition-colors">
+              📊 管理後台
+            </button>
+            <button @click="handleLogout" class="w-full px-4 py-2 text-left text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded transition-colors">
+              🚪 登出
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Main Content -->
@@ -65,28 +102,43 @@
           Anti-Fraud Agent: The Soul Awakening
         </p>
 
-        <!-- Buttons with icons -->
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mt-12">
+        <!-- 根據登入狀態顯示不同內容 -->
+        <div v-if="!props.isLoggedIn" class="text-center mt-12">
+          <p class="text-lg text-cyan-300 mb-6">請先登入或註冊以開始遊戲</p>
           <button
             @click="$emit('goToLogin')"
             class="group relative px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-cyan-500/50"
           >
-            註冊登入
+            登入 / 註冊
           </button>
-          <button
-            @click="handleGameStart"
-            class="group relative px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-purple-600/50 flex items-center justify-center gap-2"
-          >
-            <Gamepad2 :size="20" />
-            遊戲開始
-          </button>
-          <button
-            @click="$emit('goToVoiceRecognition')"
-            class="group relative px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-blue-600/50 flex items-center justify-center gap-2"
-          >
-            <Mic :size="20" />
-            語音辨識
-          </button>
+        </div>
+        
+        <!-- 登入後的主介面 -->
+        <div v-else class="text-center mt-12">
+          <p class="text-lg text-cyan-300 mb-6">歡迎回來！選擇您要進行的活動</p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <button
+              @click="startQuiz"
+              class="group relative px-8 py-4 bg-green-600 hover:bg-green-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-green-600/50 flex items-center justify-center gap-2"
+            >
+              <span>🧬</span>
+              防詐測驗
+            </button>
+            <button
+              @click="$emit('goToWelcome')"
+              class="group relative px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-purple-600/50 flex items-center justify-center gap-2"
+            >
+              <Gamepad2 :size="20" />
+              遊戲開始
+            </button>
+            <button
+              @click="$emit('goToVoiceRecognition')"
+              class="group relative px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-blue-600/50 flex items-center justify-center gap-2"
+            >
+              <Mic :size="20" />
+              語音辨識
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -103,7 +155,7 @@
 
     <!-- Quiz 和 Animal 組件 -->
     <div v-if="state === 'quiz'">
-      <Quiz @resultReady="onResultReady" @cancel="cancelQuiz" :currentUser="'guest'"/>
+      <Quiz @resultReady="onResultReady" @cancel="cancelQuiz" :currentUser="props.currentUser"/>
     </div>
     
     <div v-if="state === 'result'">
@@ -122,11 +174,13 @@ import Quiz from './Quiz.vue'
 import Animal from './Animal.vue'
 
 // 明確宣告元件會發出的事件
-const emit = defineEmits(['goToWelcome', 'startQuizOrGame', 'onQuizCompleted', 'openProfile', 'goToLogin', 'goToVoiceRecognition'])
+const emit = defineEmits(['goToWelcome', 'startQuizOrGame', 'onQuizCompleted', 'openProfile', 'goToLogin', 'goToVoiceRecognition', 'logout'])
 
 // 定義 props
 const props = defineProps({
-  hasCompletedQuiz: { type: Boolean, default: false }
+  hasCompletedQuiz: { type: Boolean, default: false },
+  isLoggedIn: { type: Boolean, default: false },
+  currentUser: { type: String, default: 'guest' }
 })
 
 // Avatar 相關設定
@@ -163,6 +217,18 @@ const useFallback = ref(false);
 
 const onAvatarError = (e) => {
     avatarSrc.value = '';
+};
+
+// 用戶選單相關
+const showUserMenu = ref(false);
+
+const toggleUserMenu = () => {
+    showUserMenu.value = !showUserMenu.value;
+};
+
+const handleLogout = () => {
+    showUserMenu.value = false;
+    emit('logout');
 };
 
 // 3D 動畫相關
@@ -342,6 +408,11 @@ function restart() {
 function cancelQuiz() {
   // 從 Quiz 取消回到主畫面
   state.value = 'login'
+}
+
+function startQuiz() {
+  // 開始測驗
+  state.value = 'quiz'
 }
 
 

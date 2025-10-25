@@ -100,9 +100,11 @@
           </div>
           <button
             type="submit"
-            class="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-cyan-500/50 mt-4 text-sm"
+            :disabled="isLoading"
+            class="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-cyan-500/50 mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Login
+            <span v-if="isLoading">登入中...</span>
+            <span v-else>Login</span>
           </button>
         </form>
 
@@ -140,9 +142,11 @@
           </div>
           <button
             type="submit"
-            class="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-cyan-500/50 mt-4 text-sm"
+            :disabled="isLoading"
+            class="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg font-semibold transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-cyan-500/50 mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Register
+            <span v-if="isLoading">註冊中...</span>
+            <span v-else>Register</span>
           </button>
         </form>
 
@@ -167,15 +171,13 @@ import BackgroundEffect from './BackgroundEffect.vue'
 
 const emit = defineEmits(['back', 'loginSuccess', 'analytSuccess'])
 const activeTab = ref('login')
+const isLoading = ref(false)
 
 // Login / Register Forms
 const loginForm = ref({ username: '', password: '' })
 const registerForm = ref({ name: '', email: '', password: '' })
 
-const validAccounts = [
-  { username: 'test', password: '123', type: 'admin' },
-  { username: 'white', password: '123', type: 'analyt' }
-]
+// 移除本地驗證帳號，改用 API 驗證
 
 // Matrix bars (80 條，更密集)
 const matrixBars = ref([])
@@ -202,28 +204,88 @@ for (let i = 0; i < 15; i++) {
 }
 
 // Login handler
-const handleLogin = () => {
+const handleLogin = async () => {
   const { username, password } = loginForm.value
-  const validAccount = validAccounts.find(acc => acc.username === username && acc.password === password)
-  if (validAccount) {
-    if (validAccount.type === 'analyt') {
-      // 發出特殊事件，讓 App.vue 知道要打開 Analyt 頁面
-      emit('analytSuccess', { username, type: 'analyt' })
+  
+  if (!username || !password) {
+    alert('請填寫完整的登入資訊！')
+    return
+  }
+
+  isLoading.value = true
+  
+  try {
+    const response = await fetch('http://localhost:8000/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      // 登入成功，根據用戶類型決定跳轉
+      if (username === 'white') {
+        // white 用戶跳轉到分析頁面
+        emit('analytSuccess', { username, type: 'analyt' })
+      } else {
+        // 其他用戶跳轉到管理頁面
+        emit('loginSuccess', { username, type: 'admin' })
+      }
     } else {
-      emit('loginSuccess', { username, type: validAccount.type })
+      alert(`登入失敗：${data.error || data.message || '請檢查帳號密碼'}`)
     }
-  } else {
-    alert('無此帳號或密碼錯誤！\n\n測試帳號：test/123 (管理員)\nwhite/123 (分析頁面)')
+  } catch (error) {
+    console.error('登入請求失敗:', error)
+    alert('網路錯誤，請檢查後端服務是否運行')
+  } finally {
+    isLoading.value = false
   }
 }
 
 // Register handler
-const handleRegister = () => {
+const handleRegister = async () => {
   const { name, email, password } = registerForm.value
-  if (name && email && password) {
-    emit('loginSuccess', { username: name, type: 'admin' })
-  } else {
-    alert('請填寫完整的註冊資料！')
+  
+  if (!name || !password) {
+    alert('請填寫使用者名稱和密碼！')
+    return
+  }
+
+  isLoading.value = true
+
+  try {
+    const response = await fetch('http://localhost:8000/users', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: name,
+        password: password,
+        email: email || `${name}@example.com`
+      })
+    })
+
+    const data = await response.json()
+
+    if (data.success) {
+      // 註冊成功，自動登入
+      alert(`註冊成功！歡迎 ${name}`)
+      emit('loginSuccess', { username: name, type: 'admin' })
+    } else {
+      alert(`註冊失敗：${data.error || data.message || '請稍後再試'}`)
+    }
+  } catch (error) {
+    console.error('註冊請求失敗:', error)
+    alert('網路錯誤，請檢查後端服務是否運行')
+  } finally {
+    isLoading.value = false
   }
 }
 </script>

@@ -39,10 +39,10 @@
     <!-- 難度選擇按鈕 + 小圖示按鈕區（排行榜與管理員） -->
     <div class="flex justify-center items-center gap-4 w-full max-w-md mb-16">
       <!-- 一般 & 挑戰遊戲按鈕 -->
-      <button @click="$emit('start', 'normal')" class="game-btn w-40 bg-cyan-700 hover:bg-cyan-500">
+      <button @click="$emit('start', { mode: 'normal', userId: props.userId })" class="game-btn w-40 bg-cyan-700 hover:bg-cyan-500">
         新手挑戰
       </button>
-      <button @click="$emit('start', 'challenge')" class="game-btn w-40 bg-purple-700 hover:bg-purple-500">
+      <button @click="$emit('start', { mode: 'challenge', userId: props.userId })" class="game-btn w-40 bg-purple-700 hover:bg-purple-500">
         極限挑戰
       </button>
       <!-- 返回按鈕（不改變排版） -->
@@ -148,7 +148,16 @@
 
 <script setup>
 import { reactive, ref, onMounted } from "vue";
-import axios from "axios";
+// 移除 axios 導入，改用 fetch
+
+// ✅ 宣告 props 接收 userId
+const props = defineProps({
+  userId: {
+    type: [String, Number],
+    required: true
+  }
+})
+
 // ✅ 宣告 emit（包含 start 與 back）
 const emit = defineEmits(['start', 'back'])
 
@@ -218,11 +227,35 @@ const showLeaderboard = ref(false);
 const leaderboard = ref([]);
 const openLeaderboard = async () => {
   try {
-    const res = await axios.get("http://localhost:3000/leaderboard");
-    leaderboard.value = res.data;
+    const response = await fetch('http://localhost:8000/leaderboard?limit=10', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('WelcomeScreen: 排行榜獲取成功:', result);
+    
+    if (result.success) {
+      // 轉換後端數據格式為前端需要的格式
+      leaderboard.value = result.data.map(entry => ({
+        name: entry.username,
+        score: entry.total_score
+      }));
+    } else {
+      console.error('獲取排行榜失敗:', result.error || result.message);
+      leaderboard.value = [];
+    }
+    
     showLeaderboard.value = true;
   } catch (err) {
     console.error("取得排行榜失敗", err);
+    leaderboard.value = [];
   }
 };
 const closeLeaderboard = () => {

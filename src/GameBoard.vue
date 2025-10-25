@@ -25,6 +25,7 @@
       >
         <div class="msg-sender">{{ msg.sender }}</div>
         <p class="msg-content">{{ msg.content }}</p>
+        <div class="msg-source">{{ msg.source }}</div>
       </div>
     </div>
   </div>
@@ -34,22 +35,23 @@
 
 <script>
 import { ref, onMounted, watch, onUnmounted } from "vue";
-import { scamMessages } from "../database.js"; // 根目錄下
-import { realMessages } from "../database_true.js"; // 根目錄下
 
 export default {
   name: "GameBoard",
   props: {
     round: Number,
     score: Number,
-    mode: { type: String, default: "normal" }
+    mode: { type: String, default: "normal" },
+    gameData: { type: Object, default: null }, // 從後端獲取的遊戲數據
+    currentRoundData: { type: Array, default: [] } // 當前關卡的題目數據
   },
-  emits: ["next-round", "end-game"],
+  emits: ["next-round", "end-game", "wrong-ids", "user-choices"],
   setup(props, { emit }) {
     const gameMessages = ref([]);
     const selectedMessage = ref(null);
     const wrongIds = ref([]) // 儲存本場遊戲錯誤的訊息 id（會 emit 給父元件）
     const showResult = ref(false);
+    const userChoices = ref([]) // 儲存用戶選擇的題目和正確答案的 message_id
     const timeLeft = ref(20);
   const dangerLevel = ref(0); // 0: normal, 1: warn, 2: danger
   let audioCtx = null;
@@ -57,8 +59,6 @@ export default {
   const timerStarted = ref(false);
     let timer = null;
 
-    const maxRounds = 30;
-    const usedIds = ref(new Set());
 
   // startTimer：啟動整體挑戰倒數（總計 20 秒）
   // 注意：timerStarted 用來避免換題或重入時重複啟動計時器。
@@ -184,49 +184,45 @@ export default {
       }
     };
 
-    const getRandomItems = (arr, n) => {
-      const shuffled = [...arr].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, n);
-    };
-
-    const shuffleArray = (arr) => [...arr].sort(() => 0.5 - Math.random());
-
-    const availableTypes = Array.from(
-      new Set([...scamMessages, ...realMessages].map((m) => m.type))
-    );
 
     const initGame = () => {
-      if (usedIds.value.size >= maxRounds * 3) return; // 遊戲結束
+      // 使用從後端獲取的題目數據
+      if (props.currentRoundData && props.currentRoundData.length > 0) {
+        // 將後端數據格式轉換為前端需要的格式
+        const roundMessages = props.currentRoundData.map(msg => ({
+          id: msg[0], // message_id
+          sender: msg[4] || 'unknown', // scam_category (顯示類別)
+          content: msg[2], // message_text
+          isScam: !msg[3], // is_truth_message (取反)
+          type: msg[4] || 'unknown', // scam_category
+          source: msg[1] || 'unknown' // message_source
+        }));
 
-      // 隨機挑一個類型
-      const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+        gameMessages.value = roundMessages;
+        selectedMessage.value = null;
+        showResult.value = false;
 
-      // 篩掉已使用的訊息
-      const scamsOfType = scamMessages.filter(
-        (m) => m.type === type && !usedIds.value.has(m.id)
-      );
-      const realsOfType = realMessages.filter(
-        (m) => m.type === type && !usedIds.value.has(m.id)
-      );
+        if (props.mode === "challenge") startTimer();
 
-      if (scamsOfType.length < 2 || realsOfType.length < 1) {
-        return initGame(); // 該類型不足重新挑
+        console.log("Round messages from backend:", roundMessages);
+        
+        // 測試程式碼：打印當前關卡的題目詳細信息
+        console.log(`=== 測試：第${props.round}關題目詳細信息 ===`)
+        roundMessages.forEach((msg, index) => {
+          console.log(`題目${index + 1}:`)
+          console.log(`  ID: ${msg.id}`)
+          console.log(`  類別: ${msg.sender}`)
+          console.log(`  內容: ${msg.content}`)
+          console.log(`  來源: ${msg.source}`)
+          console.log(`  是否詐騙: ${msg.isScam}`)
+          console.log('  ---')
+        })
+        console.log('=== 測試結束 ===')
+      } else {
+        console.warn("No round data provided from backend");
+        // 如果沒有後端數據，可以顯示錯誤或使用備用邏輯
+        gameMessages.value = [];
       }
-
-      const selectedScams = getRandomItems(scamsOfType, 2);
-      const selectedReal = getRandomItems(realsOfType, 1);
-
-      const roundMessages = shuffleArray([...selectedScams, ...selectedReal]);
-
-      roundMessages.forEach((m) => usedIds.value.add(m.id));
-
-      gameMessages.value = roundMessages;
-      selectedMessage.value = null;
-      showResult.value = false;
-
-      if (props.mode === "challenge") startTimer();
-
-      console.log("Round messages:", roundMessages);
     };
 
     const selectMessage = (msg) => {
@@ -235,6 +231,20 @@ export default {
       showResult.value = true;
 
       const correct = !msg.isScam; // 正確答案判斷
+
+      // 找到正確答案的 message_id
+      const correctMessage = gameMessages.value.find(m => !m.isScam);
+      const correctMessageId = correctMessage ? correctMessage.id : null;
+
+      // 記錄用戶選擇和正確答案的 message_id
+      const choiceData = {
+        round: props.round,
+        userChoiceId: msg.id,
+        correctAnswerId: correctMessageId,
+        isCorrect: correct
+      };
+      userChoices.value.push(choiceData);
+      console.log('GameBoard: 記錄用戶選擇:', choiceData);
 
  // ---------- 新增：選擇後若答錯就記錄 id（放在 selectMessage 內，判斷 correct 之後） ----------
 if (!correct) {
@@ -248,20 +258,33 @@ if (!correct) {
   // do NOT clear the total timer when selecting — timer runs across rounds
 
       setTimeout(() => {
-        // 每回合結束時都傳遞當前錯題ID
+        // 每回合結束時都傳遞當前錯題ID和用戶選擇數據
         console.log('GameBoard: 傳遞錯題ID到App:', wrongIds.value);
+        console.log('GameBoard: 傳遞用戶選擇數據到App:', userChoices.value);
         emit("wrong-ids", wrongIds.value.slice());
+        emit("user-choices", userChoices.value.slice()); // 新增：傳遞用戶選擇數據
         emit("next-round", correct);
         initGame();
       }, 1200);
     };
+
+    // 監聽 currentRoundData 變化，當新關卡數據傳入時重新初始化
+    watch(() => props.currentRoundData, (newData) => {
+      if (newData && newData.length > 0) {
+        initGame();
+      }
+    }, { immediate: true });
 
     onMounted(() => {
       // 重置錯題ID列表（新遊戲開始）
       wrongIds.value = [];
       console.log('GameBoard: 遊戲開始，重置錯題ID列表');
       
-      initGame();
+      // 如果已經有數據，則初始化遊戲
+      if (props.currentRoundData && props.currentRoundData.length > 0) {
+        initGame();
+      }
+      
       // start challenge timer only once when component mounts and mode is challenge
       if (props.mode === 'challenge' && !timerStarted.value) {
         startTimer();
@@ -379,6 +402,14 @@ if (!correct) {
   font-size: 0.9rem;
   white-space: pre-line; /* 支援換行符號 \n */
   overflow-y: auto /* 保留超出的文字,用滾動方是閱讀 */
+}
+
+.msg-source {
+  text-align: right;
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 5px;
+  font-style: italic;
 }
 
 
