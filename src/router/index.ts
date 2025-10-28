@@ -1,3 +1,8 @@
+/**
+ * ✅ TypeScript 源碼 - 路由配置文件
+ * 此文件會編譯成 index.js，請在此編輯而非直接修改 index.js
+ * Compiles to: index.js
+ */
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [

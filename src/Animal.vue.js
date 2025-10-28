@@ -1,17 +1,190 @@
 import { computed } from 'vue';
 /**
- * props: resultObject
- * - finalAnimal: string (or 'Mix1-Mix2')
- * - topBreakdown: [ [animal,score],... ]
- * - animalTotals: {...}
- * - agePrediction, genderPrediction, awareness, awarenessLabel, topFraudRisks
+ * props: resultObject - 新 16 型系統資料結構
+ * - animalType: string (fox, eagle, etc.)
+ * - animalData: { type, name, group, code }
+ * - axesScores: [kt, di, sg, lr]
+ * - axesAnalysis: { authority, timing, verification, motivation }
+ * - awareness: number (0-100)
+ * - awarenessLabel: string (高/中等/低)
+ * - techLiteracy: number
+ * - techLabel: string (高/中等/低)
+ * - ageGroup: string
+ * - gender: string
+ * - topFraudRisks: [[type, risk, description], ...]
+ * - finalAnimal: string (向後兼容)
+ * - agePrediction: string (向後兼容)
+ * - genderPrediction: string (向後兼容)
  */
 const props = defineProps({
     resultObject: { type: Object, required: true }
 });
 const emit = defineEmits(['backToWelcome', 'retry']);
-// animals metadata（中文名、短文、長文、tips）
-const ANIMALS = {
+// 16 型防詐靈魂動物資料庫（新系統）
+const ANIMALS_16 = {
+    fox: {
+        name: '🦊 狐狸型',
+        short: '絕對防禦型 - 深潛分析局精英，幾乎無懈可擊',
+        long: `你是深潛分析局的絕對防禦專家。懷疑且審慎的特質讓你在面對詐騙時具有極強的免疫力。你會仔細分析每個細節，不輕易相信任何可疑的訊息。`,
+        tips: [
+            '保持你的懷疑精神，這是你最大的優勢',
+            '可以成為朋友圈的防詐顧問',
+            '注意不要過度懷疑而錯失正當機會'
+        ]
+    },
+    eagle: {
+        name: '🦅 老鷹型',
+        short: '精準分析型 - 深潛分析局狙擊手，眼光銳利',
+        long: `你具備老鷹般的銳利眼光，能夠精準分析威脅。雖然對獎勵敏感，但你的懷疑天性和審慎態度提供了很好的保護。`,
+        tips: [
+            '利用你的分析能力仔細評估投資機會',
+            '避免被高報酬沖昏頭腦',
+            '多重驗證是你的專長，繼續發揮'
+        ]
+    },
+    owl: {
+        name: '🦉 貓頭鷹型',
+        short: '智慧觀察型 - 深潛分析局智囊，洞察人心',
+        long: `你是智慧的象徵，憑藉直覺和經驗做出判斷。懷疑的天性配合審慎的行動，讓你很難被一般詐騙手法欺騙。`,
+        tips: [
+            '信任你的直覺，它通常是對的',
+            '注意情感操控類的詐騙手法',
+            '繼續培養你的觀察力和判斷力'
+        ]
+    },
+    shark: {
+        name: '🦈 鯊魚型',
+        short: '謀定投機型 - 深潛分析局突擊手，危機就是轉機',
+        long: `你是天生的投機者，善於在危機中尋找機會。雖然追求獎勵，但你的懷疑天性會讓你三思而後行。`,
+        tips: [
+            '設定投資的風險上限',
+            '保持冷靜分析，不被情緒影響',
+            '利用你的敏銳度識別真正的機會'
+        ]
+    },
+    squirrel: {
+        name: '🐿️ 松鼠型',
+        short: '機警反應型 - 影襲特攻隊斥候，反應神速',
+        long: `你反應迅速且機警敏感，能夠快速識別威脅。雖然擔心損失，但你的懷疑天性會讓你在行動前先想一想。`,
+        tips: [
+            '相信你的第一直覺，通常是警告信號',
+            '不要讓恐懼影響理性判斷',
+            '建立緊急應變的標準流程'
+        ]
+    },
+    octopus: {
+        name: '🐙 章魚型',
+        short: '靈活探索型 - 影襲特攻隊偵察兵，多方驗證',
+        long: `你善於多角度思考，靈活應對各種情況。對獎勵的敏感讓你容易被誘惑，但懷疑的天性會提醒你保持警戒。`,
+        tips: [
+            '利用你的多元思維驗證資訊',
+            '設定獲利機會的評估標準',
+            '避免過度自信而忽略風險警訊'
+        ]
+    },
+    cat: {
+        name: '🐱 貓咪型',
+        short: '獨立冷靜型 - 影襲特攻隊獨行俠，我行我素',
+        long: `你獨立且冷靜，喜歡按照自己的節奏行動。直覺敏銳但有時會過度依賴感覺，需要更多理性分析的平衡。`,
+        tips: [
+            '結合直覺與理性分析',
+            '不要完全依賴第一印象',
+            '保持獨立思考的優勢'
+        ]
+    },
+    wolf: {
+        name: '🐺 狼型',
+        short: '果斷獵食型 - 影襲特攻隊突擊手，勇猛無懼',
+        long: `你果斷勇猛，敢於追求機會和挑戰。雖然行動迅速，但懷疑的本能會讓你在關鍵時刻保持警覺。`,
+        tips: [
+            '在行動前做基本的風險評估',
+            '避免競爭心理影響判斷',
+            '利用你的領導力幫助他人防詐'
+        ]
+    },
+    turtle: {
+        name: '🐢 烏龜型',
+        short: '理性冷靜型 - 重裝守備隊核心，穩如泰山',
+        long: `你穩重謹慎且善於深思熟慮。雖然容易信任權威，但審慎的天性會讓你花時間驗證重要決定。`,
+        tips: [
+            '對權威來源進行多重驗證',
+            '設定重要決定的冷靜期',
+            '保持你穩健的判斷風格'
+        ]
+    },
+    elephant: {
+        name: '🐘 大象型',
+        short: '穩健計畫型 - 重裝守備隊指揮官，深謀遠慮',
+        long: `你善於長期規劃，追求穩健的成長。對專家建議的信任需要配合更嚴格的身份驗證程序。`,
+        tips: [
+            '建立可信專家的名單和驗證流程',
+            '避免被「穩健投資」的包裝欺騙',
+            '利用你的規劃能力建立防詐檢查清單'
+        ]
+    },
+    hippo: {
+        name: '🦛 河馬型',
+        short: '領域守護型 - 重裝守備隊守護者，保衛家園',
+        long: `你重視家庭和熟悉的環境，直覺敏銳且富有同情心。對熟人的信任是你的弱點，需要額外小心。`,
+        tips: [
+            '對熟人的緊急求助要電話確認',
+            '不要讓情感影響理性判斷',
+            '建立家庭防詐的溝通機制'
+        ]
+    },
+    gorilla: {
+        name: '🦍 金剛型',
+        short: '家族領袖型 - 重裝守備隊族長，責任為重',
+        long: `你是天生的領導者，重視群體利益和權威指導。需要特別注意權威+投資結合的詐騙手法。`,
+        tips: [
+            '權威推薦的投資要格外小心求證',
+            '利用你的影響力教育群體防詐知識',
+            '建立群體決策的討論機制'
+        ]
+    },
+    mouse: {
+        name: '🐭 老鼠型',
+        short: '恐慌反應型 - 閃電先鋒偵察員，易受驚嚇 ⚠️',
+        long: `你善良且信任他人，但在緊急情況下容易恐慌。損失的恐懼會讓你做出衝動決定，這是詐騙者最愛利用的弱點。`,
+        tips: [
+            '遇到緊急威脅時深呼吸冷靜 5 分鐘',
+            '建立緊急情況的確認流程',
+            '找可信任的朋友作為緊急諮詢對象'
+        ]
+    },
+    otter: {
+        name: '🦦 水獺型',
+        short: '好奇探索型 - 閃電先鋒探險家，熱愛嘗鮮 ⚠️',
+        long: `你好奇心強且喜歡探索新事物。對機會的敏感和快速行動的習慣，容易讓你成為新型詐騙的目標。`,
+        tips: [
+            '新機會要設定「24小時冷靜期」',
+            '建立新事物的安全評估清單',
+            '與經驗豐富的朋友討論再決定'
+        ]
+    },
+    deer: {
+        name: '🦌 麋鹿型',
+        short: '情感信任型 - 閃電先鋒心靈導師，容易動心 ⚠️',
+        long: `你情感豐富且富有同情心，直覺敏銳但容易被情感操控。這種組合讓你特別容易成為情感詐騙的受害者。`,
+        tips: [
+            '涉及感情或金錢時要理性分析',
+            '建立重要決定的朋友諮詢機制',
+            '學習識別情感操控的手法'
+        ]
+    },
+    dog: {
+        name: '🐶 柴犬型',
+        short: '熱情衝動型 - 閃電先鋒突擊隊，義氣為重 ⚠️',
+        long: `你熱情忠誠且重視友情，但衝動的性格加上對朋友的信任，讓你很容易被社群推薦詐騙影響。`,
+        tips: [
+            '朋友推薦的投資要獨立研究',
+            '避免群體壓力影響個人判斷',
+            '建立投資決定的個人標準'
+        ]
+    }
+};
+// 舊系統動物對照（向後兼容）
+const ANIMALS_LEGACY = {
     Fox: {
         name: '狐狸 (Fox)',
         short: '聰明好奇、反應快，但容易被高報酬誘惑。',
@@ -115,33 +288,71 @@ const ANIMALS = {
 };
 /* fraud map label */
 const fraudLabelMap = {
-    '1_bank': '假冒金融機構', '2_gov': '假冒政府機構', '3_ecommerce': '假冒電商平台', '4_loan': '假冒貸款服務',
-    '5_offer': '假冒獎勳或優惠', '6_social': '假冒交友/戀愛', '7_family': '假冒親友', '8_lottery': '假中獎抽獎',
-    '9_investment': '假金融商品/投資', '10_law': '假公務/法務機構'
+    '複雜投資詐騙': '複雜投資', '高報酬投資詐騙': '高報酬投資', '情感操控詐騙': '情感操控',
+    '高風險投資詐騙': '高風險投資', '損失恐懼詐騙': '損失恐懼', '快速獲利詐騙': '快速獲利',
+    '直覺陷阱詐騙': '直覺陷阱', '競爭類詐騙': '競爭壓力', '權威詐騙': '權威迷惑',
+    '投資專家詐騙': '專家推薦', '熟人詐騙': '熟人利用', '權威投資詐騙': '權威投資',
+    '緊急詐騙': '緊急威脅', '快速機會詐騙': '快速機會', '情感詐騙': '情感操控',
+    '朋友推薦詐騙': '朋友推薦', '社群投資詐騙': '社群投資', '技術類詐騙': '技術陷阱',
+    '一般詐騙': '一般', '網路詐騙': '網路', '電話詐騙': '電話'
 };
 /* extract data */
 const ro = props.resultObject;
-const animalKey = ro.finalAnimal.split('-')[0]; // 如果混合型，取第一當作主要 key 的顯示
-const animalMeta = ANIMALS[animalKey] || ANIMALS.Fox;
-const animalNameLocal = animalMeta.name;
-const animalShort = animalMeta.short;
-const animalLong = animalMeta.long;
-const tips = animalMeta.tips;
-const awareness = ro.awareness;
-const awarenessLabel = ro.awarenessLabel;
-const agePrediction = ro.agePrediction;
-const genderPrediction = ro.genderPrediction;
-const topFraudRisks = ro.topFraudRisks || [];
-/* 等級判定（根據主要動物分數占比給個小等級）*/
-const totalTopScore = Object.values(ro.animalTotals).reduce((a, b) => a + b, 0) || 1;
-const primaryScore = ro.animalTotals[animalKey] || 0;
+// 檢查是否為新 16 型系統
+const isNew16System = ro.animalData && ro.animalData.name;
+let animalKey, animalMeta, animalNameLocal, animalShort, animalLong, tips;
+let awareness, awarenessLabel, topFraudRisks;
+if (isNew16System) {
+    // 新 16 型系統
+    animalKey = ro.animalType;
+    animalMeta = ANIMALS_16[animalKey] || ANIMALS_16.fox;
+    animalNameLocal = ro.animalData.name;
+    animalShort = animalMeta.short;
+    animalLong = animalMeta.long;
+    tips = animalMeta.tips;
+    awareness = ro.awareness;
+    awarenessLabel = ro.awarenessLabel;
+    topFraudRisks = ro.topFraudRisks || [];
+}
+else {
+    // 舊系統向後兼容
+    animalKey = ro.finalAnimal?.split('-')[0] || 'Fox';
+    animalMeta = ANIMALS_LEGACY[animalKey] || ANIMALS_LEGACY.Fox;
+    animalNameLocal = animalMeta.name;
+    animalShort = animalMeta.short;
+    animalLong = animalMeta.long;
+    tips = animalMeta.tips;
+    awareness = ro.awareness;
+    awarenessLabel = ro.awarenessLabel;
+    topFraudRisks = ro.topFraudRisks || [];
+}
+/* 等級判定 */
 let level = '特務•見習';
-if (primaryScore / totalTopScore > 0.25)
-    level = '特務•中階';
-if (primaryScore / totalTopScore > 0.4)
+if (awareness >= 70)
     level = '特務•高階';
-/* 簡單可愛 SVG（示範）*/
-const SVG_BANK = {
+else if (awareness >= 55)
+    level = '特務•中階';
+/* 簡單可愛 SVG 新版 */
+const SVG_BANK_16 = {
+    fox: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FFEDD5"/><g transform="translate(20,20)"><path d="M20 4c6 0 12 5 20 5s14-5 20-5c0 8-7 12-7 20s7 12 7 20c-8 0-14-5-20-5s-14 5-20 5c0-8 7-12 7-20S20 12 20 4z" fill="#FF9F43"/></g><text x="60" y="75" text-anchor="middle" font-size="24">🦊</text></svg>`,
+    eagle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#E8F5E8"/><text x="60" y="75" text-anchor="middle" font-size="24">🦅</text></svg>`,
+    owl: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F3E8FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🦉</text></svg>`,
+    shark: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#E0F2FE"/><text x="60" y="75" text-anchor="middle" font-size="24">🦈</text></svg>`,
+    squirrel: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FEF3C7"/><text x="60" y="75" text-anchor="middle" font-size="24">🐿️</text></svg>`,
+    octopus: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FCE7F3"/><text x="60" y="75" text-anchor="middle" font-size="24">🐙</text></svg>`,
+    cat: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#EDF2FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🐱</text></svg>`,
+    wolf: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F1F5F9"/><text x="60" y="75" text-anchor="middle" font-size="24">🐺</text></svg>`,
+    turtle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#DCFCE7"/><text x="60" y="75" text-anchor="middle" font-size="24">🐢</text></svg>`,
+    elephant: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F0FDF4"/><text x="60" y="75" text-anchor="middle" font-size="24">🐘</text></svg>`,
+    hippo: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F0F9FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🦛</text></svg>`,
+    gorilla: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F8FAFC"/><text x="60" y="75" text-anchor="middle" font-size="24">🦍</text></svg>`,
+    mouse: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FEF2F2"/><text x="60" y="75" text-anchor="middle" font-size="24">🐭</text></svg>`,
+    otter: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#EFF6FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🦦</text></svg>`,
+    deer: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FDF2F8"/><text x="60" y="75" text-anchor="middle" font-size="24">🦌</text></svg>`,
+    dog: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FFF7ED"/><text x="60" y="75" text-anchor="middle" font-size="24">🐶</text></svg>`
+};
+/* 舊系統 SVG（向後兼容）*/
+const SVG_BANK_LEGACY = {
     Fox: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FFEDD5"/><g transform="translate(20,20)"><path d="M20 4c6 0 12 5 20 5s14-5 20-5c0 8-7 12-7 20s7 12 7 20c-8 0-14-5-20-5s-14 5-20 5c0-8 7-12 7-20S20 12 20 4z" fill="#FF9F43"/></g></svg>`,
     Turtle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" rx="20" fill="#E6FFFA"/><g fill="#2F855A"><circle cx="60" cy="60" r="30"/></g></svg>`,
     Dog: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="20" fill="#FFF7ED"/><g><circle cx="60" cy="60" r="34" fill="#F6AD55"/></g></svg>`,
@@ -153,7 +364,9 @@ const SVG_BANK = {
     Octopus: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="20" fill="#FFF5F7"/><g><circle cx="60" cy="60" r="34" fill="#DD6B20"/></g></svg>`,
     Dove: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="20" fill="#F0FFF4"/><g><circle cx="60" cy="60" r="34" fill="#48BB78"/></g></svg>`
 };
-const animalSVG = SVG_BANK[animalKey] || SVG_BANK.Fox;
+const animalSVG = isNew16System ?
+    (SVG_BANK_16[animalKey] || SVG_BANK_16.fox) :
+    (SVG_BANK_LEGACY[animalKey] || SVG_BANK_LEGACY.Fox);
 function onBack() { emit('backToWelcome'); }
 function onRetry() { emit('retry'); }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
@@ -221,6 +434,28 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.h3, __VLS_elements.h3)({
     ...{ class: "font-semibold mb-2" },
 });
+if (__VLS_ctx.isNew16System) {
+    // @ts-ignore
+    [isNew16System,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "mb-3 p-2 bg-[rgba(255,255,255,0.05)] rounded-md" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "text-xs text-slate-400" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "font-medium text-cyan-400" },
+    });
+    (__VLS_ctx.ro.animalData.group);
+    // @ts-ignore
+    [ro,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "text-xs text-slate-500 mt-1" },
+    });
+    (__VLS_ctx.ro.animalData.code);
+    // @ts-ignore
+    [ro,];
+}
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
     ...{ class: "text-slate-300 mb-3" },
 });
@@ -252,30 +487,106 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "font-medium" },
 });
-(__VLS_ctx.agePrediction);
-(__VLS_ctx.genderPrediction);
+(__VLS_ctx.isNew16System ? `${__VLS_ctx.ro.techLabel} (${__VLS_ctx.ro.techLiteracy}分)` : '中等適應 (65分)');
 // @ts-ignore
-[agePrediction, genderPrediction,];
+[isNew16System, ro, ro,];
+if (__VLS_ctx.isNew16System && __VLS_ctx.ro.axesAnalysis) {
+    // @ts-ignore
+    [isNew16System, ro,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "mt-4" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "text-sm text-slate-300 mb-2" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "grid grid-cols-2 gap-2 text-xs" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "p-2 bg-[rgba(255,255,255,0.05)] rounded" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
+    (__VLS_ctx.ro.axesAnalysis.authority.tendency);
+    // @ts-ignore
+    [ro,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "p-2 bg-[rgba(255,255,255,0.05)] rounded" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
+    (__VLS_ctx.ro.axesAnalysis.timing.tendency);
+    // @ts-ignore
+    [ro,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "p-2 bg-[rgba(255,255,255,0.05)] rounded" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
+    (__VLS_ctx.ro.axesAnalysis.verification.tendency);
+    // @ts-ignore
+    [ro,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "p-2 bg-[rgba(255,255,255,0.05)] rounded" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({});
+    (__VLS_ctx.ro.axesAnalysis.motivation.tendency);
+    // @ts-ignore
+    [ro,];
+}
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "mt-4" },
 });
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "text-sm text-slate-300 mb-2" },
 });
+(__VLS_ctx.isNew16System ? '個人化詐騙風險分析' : '最易受騙的前三類型');
+// @ts-ignore
+[isNew16System,];
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "flex gap-2 flex-wrap" },
 });
-for (const [f, idx] of __VLS_getVForSourceType((__VLS_ctx.topFraudRisks))) {
+if (__VLS_ctx.isNew16System) {
     // @ts-ignore
-    [topFraudRisks,];
-    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        key: (idx),
-        ...{ class: "px-3 py-1 bg-red-600/10 text-red-400 rounded-full text-sm border border-red-600/10" },
+    [isNew16System,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "space-y-1" },
     });
-    (__VLS_ctx.fraudLabelMap[f[0]]);
-    (f[1]);
-    // @ts-ignore
-    [fraudLabelMap,];
+    for (const [risk, idx] of __VLS_getVForSourceType((__VLS_ctx.topFraudRisks))) {
+        // @ts-ignore
+        [topFraudRisks,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            key: (idx),
+            ...{ class: "flex items-center gap-2 p-2 bg-red-600/10 border border-red-600/20 rounded-md" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "px-2 py-1 bg-red-600/20 text-red-400 rounded text-xs font-bold" },
+        });
+        (risk[1]);
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex-1" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-sm text-red-300 font-medium" },
+        });
+        (risk[0]);
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-xs text-red-400/80" },
+        });
+        (risk[2]);
+    }
+}
+else {
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
+    for (const [f, idx] of __VLS_getVForSourceType((__VLS_ctx.topFraudRisks))) {
+        // @ts-ignore
+        [topFraudRisks,];
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            key: (idx),
+            ...{ class: "px-3 py-1 bg-red-600/10 text-red-400 rounded-full text-sm border border-red-600/10" },
+        });
+        (__VLS_ctx.fraudLabelMap[f[0]]);
+        (f[1]);
+        // @ts-ignore
+        [fraudLabelMap,];
+    }
 }
 if (__VLS_ctx.topFraudRisks.length === 0) {
     // @ts-ignore
@@ -302,6 +613,24 @@ for (const [t, idx] of __VLS_getVForSourceType((__VLS_ctx.tips))) {
     });
     (t);
 }
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "mt-4 p-3 bg-[rgba(34,211,238,0.1)] border border-cyan-400/20 rounded-md" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "flex items-center gap-2 text-cyan-400" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-lg" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "font-semibold" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-sm text-slate-300 mt-1" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-cyan-400 font-semibold" },
+});
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "mt-6 flex justify-end gap-3" },
 });
@@ -371,6 +700,17 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 /** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(255,255,255,0.05)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-slate-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['grid']} */ ;
@@ -392,9 +732,51 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-slate-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid']} */ ;
+/** @type {__VLS_StyleScopedClasses['grid-cols-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(255,255,255,0.05)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(255,255,255,0.05)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(255,255,255,0.05)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(255,255,255,0.05)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex-wrap']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-600/10']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-red-600/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-red-600/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-red-400/80']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-1']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-red-600/10']} */ ;
@@ -411,6 +793,23 @@ __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
 /** @type {__VLS_StyleScopedClasses['ml-5']} */ ;
 /** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-[rgba(34,211,238,0.1)]']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-cyan-400/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-md']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['mt-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-end']} */ ;

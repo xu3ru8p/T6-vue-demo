@@ -25,26 +25,72 @@
         <!-- 中：深度分析 -->
         <div class="col-span-2 p-4 bg-[rgba(255,255,255,0.02)] rounded-xl">
           <h3 class="font-semibold mb-2">詳細分析</h3>
+          
+          <!-- 16 型系統特有的戰術群組顯示 -->
+          <div v-if="isNew16System" class="mb-3 p-2 bg-[rgba(255,255,255,0.05)] rounded-md">
+            <div class="text-xs text-slate-400">戰術群組</div>
+            <div class="font-medium text-cyan-400">{{ ro.animalData.group }}</div>
+            <div class="text-xs text-slate-500 mt-1">代碼：{{ ro.animalData.code }}</div>
+          </div>
+          
           <p class="text-slate-300 mb-3">{{ animalLong }}</p>
 
           <div class="grid grid-cols-2 gap-3">
             <div class="p-3 bg-[rgba(255,255,255,0.02)] rounded-md">
               <div class="text-xs text-slate-400">反詐意識</div>
-              <div class="font-medium">{{ awareness }} （{{ awarenessLabel }}）</div>
+              <div class="font-medium">{{ awareness }}分 （{{ awarenessLabel }}）</div>
             </div>
 
             <div class="p-3 bg-[rgba(255,255,255,0.02)] rounded-md">
-              <div class="text-xs text-slate-400">推估年齡層 / 性別</div>
-              <div class="font-medium">{{ agePrediction }} / {{ genderPrediction }}</div>
+              <div class="text-xs text-slate-400">科技素養</div>
+              <div class="font-medium">
+                {{ isNew16System ? `${ro.techLabel} (${ro.techLiteracy}分)` : '中等適應 (65分)' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- 16 型系統的四軸分析 -->
+          <div v-if="isNew16System && ro.axesAnalysis" class="mt-4">
+            <div class="text-sm text-slate-300 mb-2">心理軸線分析</div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="p-2 bg-[rgba(255,255,255,0.05)] rounded">
+                <strong>權威態度:</strong> {{ ro.axesAnalysis.authority.tendency }}
+              </div>
+              <div class="p-2 bg-[rgba(255,255,255,0.05)] rounded">
+                <strong>時間偏好:</strong> {{ ro.axesAnalysis.timing.tendency }}
+              </div>
+              <div class="p-2 bg-[rgba(255,255,255,0.05)] rounded">
+                <strong>驗證方式:</strong> {{ ro.axesAnalysis.verification.tendency }}
+              </div>
+              <div class="p-2 bg-[rgba(255,255,255,0.05)] rounded">
+                <strong>風險偏好:</strong> {{ ro.axesAnalysis.motivation.tendency }}
+              </div>
             </div>
           </div>
 
           <div class="mt-4">
-            <div class="text-sm text-slate-300 mb-2">最易受騙的前三類型</div>
+            <div class="text-sm text-slate-300 mb-2">
+              {{ isNew16System ? '個人化詐騙風險分析' : '最易受騙的前三類型' }}
+            </div>
             <div class="flex gap-2 flex-wrap">
-              <span v-for="(f, idx) in topFraudRisks" :key="idx" class="px-3 py-1 bg-red-600/10 text-red-400 rounded-full text-sm border border-red-600/10">
-                {{ fraudLabelMap[f[0]] }} (score {{ f[1] }})
-              </span>
+              <div v-if="isNew16System" class="space-y-1">
+                <div v-for="(risk, idx) in topFraudRisks" :key="idx" 
+                     class="flex items-center gap-2 p-2 bg-red-600/10 border border-red-600/20 rounded-md">
+                  <span class="px-2 py-1 bg-red-600/20 text-red-400 rounded text-xs font-bold">
+                    {{ risk[1] }}
+                  </span>
+                  <div class="flex-1">
+                    <div class="text-sm text-red-300 font-medium">{{ risk[0] }}</div>
+                    <div class="text-xs text-red-400/80">{{ risk[2] }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else>
+                <span v-for="(f, idx) in topFraudRisks" :key="idx" 
+                      class="px-3 py-1 bg-red-600/10 text-red-400 rounded-full text-sm border border-red-600/10">
+                  {{ fraudLabelMap[f[0]] }} ({{ f[1] }})
+                </span>
+              </div>
               <span v-if="topFraudRisks.length===0" class="text-slate-400">- 無明顯高風險類型 -</span>
             </div>
           </div>
@@ -54,6 +100,17 @@
             <ul class="list-disc ml-5 mt-2">
               <li v-for="(t, idx) in tips" :key="idx" class="text-sm">{{ t }}</li>
             </ul>
+          </div>
+          
+          <!-- 心理測驗完成獎勵 -->
+          <div class="mt-4 p-3 bg-[rgba(34,211,238,0.1)] border border-cyan-400/20 rounded-md">
+            <div class="flex items-center gap-2 text-cyan-400">
+              <span class="text-lg">🎉</span>
+              <span class="font-semibold">心理測驗完成獎勵</span>
+            </div>
+            <div class="text-sm text-slate-300 mt-1">
+              恭喜完成防詐心理測驗！獲得 <span class="text-cyan-400 font-semibold">+100 XP</span> 經驗值獎勵
+            </div>
           </div>
         </div>
       </div>
@@ -70,19 +127,213 @@
 import { computed } from 'vue'
 
 /**
- * props: resultObject
- * - finalAnimal: string (or 'Mix1-Mix2')
- * - topBreakdown: [ [animal,score],... ]
- * - animalTotals: {...}
- * - agePrediction, genderPrediction, awareness, awarenessLabel, topFraudRisks
+ * props: resultObject - 新 16 型系統資料結構
+ * - animalType: string (fox, eagle, etc.)
+ * - animalData: { type, name, group, code }
+ * - axesScores: [kt, di, sg, lr]
+ * - axesAnalysis: { authority, timing, verification, motivation }
+ * - awareness: number (0-100)
+ * - awarenessLabel: string (高/中等/低)
+ * - techLiteracy: number
+ * - techLabel: string (高/中等/低)
+ * - ageGroup: string
+ * - gender: string
+ * - topFraudRisks: [[type, risk, description], ...]
+ * - finalAnimal: string (向後兼容)
+ * - agePrediction: string (向後兼容)
+ * - genderPrediction: string (向後兼容)
  */
 const props = defineProps({
   resultObject: { type: Object, required: true }
 })
 const emit = defineEmits(['backToWelcome','retry'])
 
-// animals metadata（中文名、短文、長文、tips）
-const ANIMALS = {
+// 16 型防詐靈魂動物資料庫（新系統）
+const ANIMALS_16 = {
+  fox: {
+    name:'🦊 狐狸型',
+    short:'絕對防禦型 - 深潛分析局精英，幾乎無懈可擊',
+    long:`你是深潛分析局的絕對防禦專家。懷疑且審慎的特質讓你在面對詐騙時具有極強的免疫力。你會仔細分析每個細節，不輕易相信任何可疑的訊息。`,
+    tips:[
+      '保持你的懷疑精神，這是你最大的優勢',
+      '可以成為朋友圈的防詐顧問',
+      '注意不要過度懷疑而錯失正當機會'
+    ]
+  },
+  eagle: {
+    name:'🦅 老鷹型',
+    short:'精準分析型 - 深潛分析局狙擊手，眼光銳利',
+    long:`你具備老鷹般的銳利眼光，能夠精準分析威脅。雖然對獎勵敏感，但你的懷疑天性和審慎態度提供了很好的保護。`,
+    tips:[
+      '利用你的分析能力仔細評估投資機會',
+      '避免被高報酬沖昏頭腦',
+      '多重驗證是你的專長，繼續發揮'
+    ]
+  },
+  owl: {
+    name:'🦉 貓頭鷹型',
+    short:'智慧觀察型 - 深潛分析局智囊，洞察人心',
+    long:`你是智慧的象徵，憑藉直覺和經驗做出判斷。懷疑的天性配合審慎的行動，讓你很難被一般詐騙手法欺騙。`,
+    tips:[
+      '信任你的直覺，它通常是對的',
+      '注意情感操控類的詐騙手法',
+      '繼續培養你的觀察力和判斷力'
+    ]
+  },
+  shark: {
+    name:'🦈 鯊魚型',
+    short:'謀定投機型 - 深潛分析局突擊手，危機就是轉機',
+    long:`你是天生的投機者，善於在危機中尋找機會。雖然追求獎勵，但你的懷疑天性會讓你三思而後行。`,
+    tips:[
+      '設定投資的風險上限',
+      '保持冷靜分析，不被情緒影響',
+      '利用你的敏銳度識別真正的機會'
+    ]
+  },
+  squirrel: {
+    name:'🐿️ 松鼠型',
+    short:'機警反應型 - 影襲特攻隊斥候，反應神速',
+    long:`你反應迅速且機警敏感，能夠快速識別威脅。雖然擔心損失，但你的懷疑天性會讓你在行動前先想一想。`,
+    tips:[
+      '相信你的第一直覺，通常是警告信號',
+      '不要讓恐懼影響理性判斷',
+      '建立緊急應變的標準流程'
+    ]
+  },
+  octopus: {
+    name:'🐙 章魚型',
+    short:'靈活探索型 - 影襲特攻隊偵察兵，多方驗證',
+    long:`你善於多角度思考，靈活應對各種情況。對獎勵的敏感讓你容易被誘惑，但懷疑的天性會提醒你保持警戒。`,
+    tips:[
+      '利用你的多元思維驗證資訊',
+      '設定獲利機會的評估標準',
+      '避免過度自信而忽略風險警訊'
+    ]
+  },
+  cat: {
+    name:'🐱 貓咪型',
+    short:'獨立冷靜型 - 影襲特攻隊獨行俠，我行我素',
+    long:`你獨立且冷靜，喜歡按照自己的節奏行動。直覺敏銳但有時會過度依賴感覺，需要更多理性分析的平衡。`,
+    tips:[
+      '結合直覺與理性分析',
+      '不要完全依賴第一印象',
+      '保持獨立思考的優勢'
+    ]
+  },
+  wolf: {
+    name:'🐺 狼型',
+    short:'果斷獵食型 - 影襲特攻隊突擊手，勇猛無懼',
+    long:`你果斷勇猛，敢於追求機會和挑戰。雖然行動迅速，但懷疑的本能會讓你在關鍵時刻保持警覺。`,
+    tips:[
+      '在行動前做基本的風險評估',
+      '避免競爭心理影響判斷',
+      '利用你的領導力幫助他人防詐'
+    ]
+  },
+  turtle: {
+    name:'🐢 烏龜型',
+    short:'理性冷靜型 - 重裝守備隊核心，穩如泰山',
+    long:`你穩重謹慎且善於深思熟慮。雖然容易信任權威，但審慎的天性會讓你花時間驗證重要決定。`,
+    tips:[
+      '對權威來源進行多重驗證',
+      '設定重要決定的冷靜期',
+      '保持你穩健的判斷風格'
+    ]
+  },
+  elephant: {
+    name:'🐘 大象型',
+    short:'穩健計畫型 - 重裝守備隊指揮官，深謀遠慮',
+    long:`你善於長期規劃，追求穩健的成長。對專家建議的信任需要配合更嚴格的身份驗證程序。`,
+    tips:[
+      '建立可信專家的名單和驗證流程',
+      '避免被「穩健投資」的包裝欺騙',
+      '利用你的規劃能力建立防詐檢查清單'
+    ]
+  },
+  hippo: {
+    name:'🦛 河馬型',
+    short:'領域守護型 - 重裝守備隊守護者，保衛家園',
+    long:`你重視家庭和熟悉的環境，直覺敏銳且富有同情心。對熟人的信任是你的弱點，需要額外小心。`,
+    tips:[
+      '對熟人的緊急求助要電話確認',
+      '不要讓情感影響理性判斷',
+      '建立家庭防詐的溝通機制'
+    ]
+  },
+  gorilla: {
+    name:'🦍 金剛型',
+    short:'家族領袖型 - 重裝守備隊鋼鐵戰神，守護家族',
+    long:`你是重裝守備隊的鋼鐵戰神，信任權威且為家族承擔責任。需要特別注意熟人推薦的「保證獲利」投資詐騙。`,
+    tips:[
+      '拒絕任何「朋友介紹」但「保證獲利」的投資',
+      '運用家族領袖的影響力教育防詐知識',
+      '建立家族內部的投資決策討論機制'
+    ]
+  },
+  mouse: {
+    name:'🐭 老鼠型',
+    short:'恐慌反應型 - 閃電先鋒偵察員，易受驚嚇 ⚠️',
+    long:`你善良且信任他人，但在緊急情況下容易恐慌。損失的恐懼會讓你做出衝動決定，這是詐騙者最愛利用的弱點。`,
+    tips:[
+      '遇到緊急威脅時深呼吸冷靜 5 分鐘',
+      '建立緊急情況的確認流程',
+      '找可信任的朋友作為緊急諮詢對象'
+    ]
+  },
+  otter: {
+    name:'🦦 水獺型',
+    short:'好奇探索型 - 閃電先鋒探險家，熱愛嘗鮮 ⚠️',
+    long:`你好奇心強且喜歡探索新事物。對機會的敏感和快速行動的習慣，容易讓你成為新型詐騙的目標。`,
+    tips:[
+      '新機會要設定「24小時冷靜期」',
+      '建立新事物的安全評估清單',
+      '與經驗豐富的朋友討論再決定'
+    ]
+  },
+  deer: {
+    name:'🦌 鹿型',
+    short:'平衡協調型 - 領導先鋒局協調員，中庸之道',
+    long:`你具備平衡的特質，既信任權威又能即時反應，善於在詳細分析和損失規避之間找到平衡。是天生的協調者。`,
+    tips:[
+      '利用你的平衡感做出明智決策',
+      '不要因為急於決定而忽略細節',
+      '保持開放態度但要有底線'
+    ]
+  },
+  lion: {
+    name:'🦁 獅子型',
+    short:'王者領導型 - 領導先鋒局指揮官，威嚴霸氣',
+    long:`你是天生的領導者，信任權威且能快速決策。你的自信和果斷是優勢，但要注意不要被權威光環蒙蔽了判斷。`,
+    tips:[
+      '保持你的領導風範，但要謹慎驗證',
+      '不要讓權威迷信影響獨立思考',
+      '建立可信賴的諮詢管道'
+    ]
+  },
+  elephant: {
+    name:'🐘 大象型',
+    short:'智慧長者型 - 領導先鋒局元老，穩重睿智',
+    long:`你擁有大象般的智慧和記憶力，能夠從經驗中學習。你的直覺很強，但有時也需要更多的細節分析。`,
+    tips:[
+      '相信你的經驗和直覺',
+      '在重要決定時多收集一些細節',
+      '分享你的智慧幫助他人防詐'
+    ]
+  },
+  horse: {
+    name:'� 馬型',
+    short:'奔馳追求型 - 領導先鋒局騎兵，追求卓越',
+    long:`你像馬一樣充滿活力，追求獎勵和成就。你的信任天性和即時反應讓你容易被高回報機會吸引，需要謹慎評估。`,
+    tips:[
+      '設定投資風險的明確上限',
+      '保持你的衝勁但要三思而後行',
+      '建立投資前的驗證清單'
+    ]
+  }
+}
+
+// 舊系統動物對照（向後兼容）
+const ANIMALS_LEGACY = {
   Fox: {
     name:'狐狸 (Fox)',
     short:'聰明好奇、反應快，但容易被高報酬誘惑。',
@@ -187,35 +438,75 @@ const ANIMALS = {
 
 /* fraud map label */
 const fraudLabelMap = {
-  '1_bank':'假冒金融機構','2_gov':'假冒政府機構','3_ecommerce':'假冒電商平台','4_loan':'假冒貸款服務',
-  '5_offer':'假冒獎勳或優惠','6_social':'假冒交友/戀愛','7_family':'假冒親友','8_lottery':'假中獎抽獎',
-  '9_investment':'假金融商品/投資','10_law':'假公務/法務機構'
+  '複雜投資詐騙':'複雜投資','高報酬投資詐騙':'高報酬投資','情感操控詐騙':'情感操控',
+  '高風險投資詐騙':'高風險投資','損失恐懼詐騙':'損失恐懼','快速獲利詐騙':'快速獲利',
+  '直覺陷阱詐騙':'直覺陷阱','競爭類詐騙':'競爭壓力','權威詐騙':'權威迷惑',
+  '投資專家詐騙':'專家推薦','熟人詐騙':'熟人利用','權威投資詐騙':'權威投資',
+  '緊急詐騙':'緊急威脅','快速機會詐騙':'快速機會','情感詐騙':'情感操控',
+  '朋友推薦詐騙':'朋友推薦','社群投資詐騙':'社群投資','技術類詐騙':'技術陷阱',
+  '一般詐騙':'一般','網路詐騙':'網路','電話詐騙':'電話'
 }
 
 /* extract data */
 const ro = props.resultObject
-const animalKey = ro.finalAnimal.split('-')[0] // 如果混合型，取第一當作主要 key 的顯示
-const animalMeta = ANIMALS[animalKey] || ANIMALS.Fox
 
-const animalNameLocal = animalMeta.name
-const animalShort = animalMeta.short
-const animalLong = animalMeta.long
-const tips = animalMeta.tips
-const awareness = ro.awareness
-const awarenessLabel = ro.awarenessLabel
-const agePrediction = ro.agePrediction
-const genderPrediction = ro.genderPrediction
-const topFraudRisks = ro.topFraudRisks || []
+// 檢查是否為新 16 型系統
+const isNew16System = ro.animalData && ro.animalData.name
 
-/* 等級判定（根據主要動物分數占比給個小等級）*/
-const totalTopScore = Object.values(ro.animalTotals).reduce((a,b)=>a+b,0) || 1
-const primaryScore = ro.animalTotals[animalKey] || 0
+let animalKey, animalMeta, animalNameLocal, animalShort, animalLong, tips
+let awareness, awarenessLabel, topFraudRisks
+
+if (isNew16System) {
+  // 新 16 型系統
+  animalKey = ro.animalType
+  animalMeta = ANIMALS_16[animalKey] || ANIMALS_16.fox
+  animalNameLocal = ro.animalData.name
+  animalShort = animalMeta.short
+  animalLong = animalMeta.long
+  tips = animalMeta.tips
+  awareness = ro.awareness
+  awarenessLabel = ro.awarenessLabel
+  topFraudRisks = ro.topFraudRisks || []
+} else {
+  // 舊系統向後兼容
+  animalKey = ro.finalAnimal?.split('-')[0] || 'Fox'
+  animalMeta = ANIMALS_LEGACY[animalKey] || ANIMALS_LEGACY.Fox
+  animalNameLocal = animalMeta.name
+  animalShort = animalMeta.short
+  animalLong = animalMeta.long
+  tips = animalMeta.tips
+  awareness = ro.awareness
+  awarenessLabel = ro.awarenessLabel
+  topFraudRisks = ro.topFraudRisks || []
+}
+
+/* 等級判定 */
 let level = '特務•見習'
-if (primaryScore / totalTopScore > 0.25) level = '特務•中階'
-if (primaryScore / totalTopScore > 0.4) level = '特務•高階'
+if (awareness >= 70) level = '特務•高階'
+else if (awareness >= 55) level = '特務•中階'
 
-/* 簡單可愛 SVG（示範）*/
-const SVG_BANK = {
+/* 簡單可愛 SVG 新版 */
+const SVG_BANK_16 = {
+  fox: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FFEDD5"/><g transform="translate(20,20)"><path d="M20 4c6 0 12 5 20 5s14-5 20-5c0 8-7 12-7 20s7 12 7 20c-8 0-14-5-20-5s-14 5-20 5c0-8 7-12 7-20S20 12 20 4z" fill="#FF9F43"/></g><text x="60" y="75" text-anchor="middle" font-size="24">🦊</text></svg>`,
+  eagle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#E8F5E8"/><text x="60" y="75" text-anchor="middle" font-size="24">🦅</text></svg>`,
+  owl: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F3E8FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🦉</text></svg>`,
+  shark: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#E0F2FE"/><text x="60" y="75" text-anchor="middle" font-size="24">🦈</text></svg>`,
+  squirrel: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FEF3C7"/><text x="60" y="75" text-anchor="middle" font-size="24">🐿️</text></svg>`,
+  octopus: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FCE7F3"/><text x="60" y="75" text-anchor="middle" font-size="24">🐙</text></svg>`,
+  cat: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#EDF2FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🐱</text></svg>`,
+  wolf: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F1F5F9"/><text x="60" y="75" text-anchor="middle" font-size="24">🐺</text></svg>`,
+  turtle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#DCFCE7"/><text x="60" y="75" text-anchor="middle" font-size="24">🐢</text></svg>`,
+  elephant: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F0FDF4"/><text x="60" y="75" text-anchor="middle" font-size="24">🐘</text></svg>`,
+  hippo: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F0F9FF"/><text x="60" y="75" text-anchor="middle" font-size="24">🦛</text></svg>`,
+  gorilla: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F8FAFC"/><text x="60" y="75" text-anchor="middle" font-size="24">🦍</text></svg>`,
+  mouse: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FEF2F2"/><text x="60" y="75" text-anchor="middle" font-size="24">🐭</text></svg>`,
+  deer: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FDF2F8"/><text x="60" y="75" text-anchor="middle" font-size="24">�</text></svg>`,
+  lion: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FEF3C7"/><text x="60" y="75" text-anchor="middle" font-size="24">�</text></svg>`,
+  horse: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#F0F4FF"/><text x="60" y="75" text-anchor="middle" font-size="24">�</text></svg>`
+}
+
+/* 舊系統 SVG（向後兼容）*/
+const SVG_BANK_LEGACY = {
   Fox: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="60" cy="60" r="56" fill="#FFEDD5"/><g transform="translate(20,20)"><path d="M20 4c6 0 12 5 20 5s14-5 20-5c0 8-7 12-7 20s7 12 7 20c-8 0-14-5-20-5s-14 5-20 5c0-8 7-12 7-20S20 12 20 4z" fill="#FF9F43"/></g></svg>`,
   Turtle: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect x="8" y="8" width="104" height="104" rx="20" fill="#E6FFFA"/><g fill="#2F855A"><circle cx="60" cy="60" r="30"/></g></svg>`,
   Dog: `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="20" fill="#FFF7ED"/><g><circle cx="60" cy="60" r="34" fill="#F6AD55"/></g></svg>`,
@@ -228,7 +519,9 @@ const SVG_BANK = {
   Dove:`<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><rect width="120" height="120" rx="20" fill="#F0FFF4"/><g><circle cx="60" cy="60" r="34" fill="#48BB78"/></g></svg>`
 }
 
-const animalSVG = SVG_BANK[animalKey] || SVG_BANK.Fox
+const animalSVG = isNew16System ? 
+  (SVG_BANK_16[animalKey] || SVG_BANK_16.fox) : 
+  (SVG_BANK_LEGACY[animalKey] || SVG_BANK_LEGACY.Fox)
 
 function onBack(){ emit('backToWelcome') }
 function onRetry(){ emit('retry') }

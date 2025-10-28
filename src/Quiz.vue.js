@@ -1,7 +1,10 @@
 import { reactive, ref, computed } from 'vue';
 import soulAnimalStore from './soulAnimalStore.js';
+import { useSoulAnimalStore } from './stores/soulAnimalSystem.js';
 // 定義 emits
 const emit = defineEmits(['resultReady', 'cancel']);
+// 初始化 Soul Animal Store
+const soulAnimalSystem = useSoulAnimalStore();
 // 定義 props - 接收當前用戶
 const props = defineProps({
     currentUser: {
@@ -10,154 +13,258 @@ const props = defineProps({
     }
 });
 /**
- * 包含性別問題的 13 題題目
- * 第一題為性別問題，有助於提高結果準確性
+ * 防詐特務靈魂測驗 (16 型平衡版) - 14 題專業心理測驗
+ * 結合心理測驗的嚴謹性與金融防詐的實務情境
  */
 const questions = [
-    { text: 'Q1. 為了更精準分析你的防詐特質，請選擇最符合你的描述：', options: ['我是帥氣迷人的男生 🧑', '我是美麗可愛的女生 👩'] },
-    { text: 'Q2. 你最常使用哪種社群平台或通訊方式？', options: ['TikTok/IG/Discord', 'LINE/FB Messenger', 'Facebook/Email', '電話/簡訊為主'] },
-    { text: 'Q3. 收到「免費抽獎/遊戲點數」的訊息，你會？', options: ['馬上參加，超讚的！', '看一下再決定', '先查這是什麼活動', '直接刪除'] },
-    { text: 'Q4. 有人說可以「在家兼職月入十萬」，你的反應？', options: ['想了解怎麼做', '覺得可能但要研究', '聽起來很可疑', '絕對是詐騙'] },
-    { text: 'Q5. 收到親友「緊急借錢」的訊息，你會？', options: ['先匯款救急', '打電話確認身份', '問詳細情況', '找其他家人確認'] },
-    { text: 'Q6. 接到「銀行/政府機關」來電要求操作ATM，你會？', options: ['照指示做', '掛斷後打官方電話', '請對方稍等我查證', '直接掛斷'] },
-    { text: 'Q7. 朋友推薦「保證獲利的投資」，你的態度？', options: ['有錢就投', '小額試試看', '詳細研究風險', '投資都有風險，謹慎'] },
-    { text: 'Q8. 收到「包裹異常需重新付款」的通知，你會？', options: ['照連結付款', '查物流官網', '聯絡寄件人', '確認沒訂貨就忽略'] },
-    { text: 'Q9. 看到「名醫推薦神奇保健品」廣告，你會？', options: ['想買來試試', '上網查評價', '問醫生朋友', '不相信網路醫療廣告'] },
-    { text: 'Q10. 你對「區塊鏈/虛擬幣/NFT」投資的看法？', options: ['趨勢，要跟上', '小心但可嘗試', '風險很高要研究', '太複雜，不碰'] },
-    { text: 'Q11. 網站要求填寫個人資料時，你通常？', options: ['直接填寫', '看情況填寫', '只填必要欄位', '盡量不填個資'] },
-    { text: 'Q12. 判斷詐騙訊息時，你主要依據什麼？', options: ['感覺對不對', '內容有沒有破綻', '查證來源真偽', '詢問專業人士'] },
-    { text: 'Q13. 如果要你選：你希望成為哪類特務？（選填）', options: ['狐狸', '烏龜', '狗', '貓'] } // 題13 為主觀選填（不強制）
+    // 第一部分：基礎輪廓
+    {
+        text: 'Q1. 您的年齡區間最接近？',
+        options: ['18 歲（含）以下', '19 - 25 歲', '26 - 35 歲', '36 - 50 歲', '51 歲（含）以上']
+    },
+    {
+        text: 'Q2. 您的性別是？',
+        options: ['男性', '女性', '其他 / 不便透露']
+    },
+    // 第二部分：情境決策測驗
+    {
+        text: 'Q3. （情境）一通自稱「知名電商客服」的來電，準確說出您上週的訂單內容，並聲稱「因系統錯誤導致重複扣款」，要求您前往 ATM 或操作網路銀行來「解除分期」。您的第一反應是？',
+        options: [
+            '配合指示，畢竟對方資訊正確，且金錢損失很緊急。',
+            '保持通話，但同時自行登入官方 App 檢查訂單狀態。',
+            '禮貌地告訴對方：「我會自行聯繫銀行確認」，然後主動掛斷電話。',
+            '直接掛斷，並撥打 165 反詐騙專線檢舉。'
+        ]
+    },
+    {
+        text: 'Q4. （情境）您在社群平台看到一則廣告：「AI 智能帶單，保證獲利！獨家內線，月報酬 50%！」並附上一個 QR Code 邀請您加入「老師」的投資群組。您會？',
+        options: [
+            '馬上加入！這是一個千載難逢的機會，先進群看看。',
+            '有點心動，但會先觀望，看看群組裡其他人的「獲利截圖」。',
+            '搜尋這位「老師」的評價，並查詢該投資平台是否合法。',
+            '不相信任何「保證獲利」的說詞，直接忽略。'
+        ]
+    },
+    {
+        text: 'Q5. （情境）收到一封主旨為「【緊急通知】您的雲端空間已滿，帳號將於 24 小時後停權」的電子郵件，要求您立即點擊連結登入，以「升級方案並保留資料」。您會？',
+        options: [
+            '恐慌！立刻點擊郵件中的連結登入，以免資料遺失。',
+            '猶豫，先點開連結看看登入頁面是否「看起來」像真的。',
+            '不點擊郵件連結。自行打開瀏覽器，手動輸入官方網址登入檢查。',
+            '這很可疑。仔細檢查寄件人 Email 是否來自官方網域。'
+        ]
+    },
+    {
+        text: 'Q6. （情境）當您在一個新的網站上購物，結帳時發現網址是「http://」開頭，而不是「https://」，您會？',
+        options: [
+            '沒注意過這個，方便就好，直接輸入信用卡號。',
+            '知道「https」比較安全，但如果真的很想買，還是會填寫。',
+            '立刻停止交易。缺少 S (Secure) 代表資料傳輸未加密，風險太高。',
+            '不只看 https，還會檢查網站是否有拼寫錯誤。'
+        ]
+    },
+    {
+        text: 'Q7. （情境）朋友用 LINE 傳來一個連結，訊息寫著：「幫我投票，我小孩參加攝影比賽，拜託了！」點開後，網站要求您「必須使用 LINE 帳號登入」才能投票。您會？',
+        options: [
+            '朋友的請求，馬上登入投票，不疑有他。',
+            '先問朋友：「這是真的嗎？」，同時觀察網站是否粗糙。',
+            '拒絕登入。提醒朋友這類網站常是為了盜用帳號或騙取個資。',
+            '懷疑朋友帳號被盜。立即改用電話或視訊向本人確認。'
+        ]
+    },
+    {
+        text: 'Q8. （情境）您收到一則簡訊：「【監理站】您有 2,800 元交通罰款尚未繳納，逾期將加倍處罰。請點此連結完成線上支付。」您會？',
+        options: [
+            '擔心逾期被罰更多，先點進去看要付多少錢。',
+            '回想最近是否有違規，並點擊連結查看詳情。',
+            '忽略簡訊。只相信紙本罰單，或自行上「監理服務網」查詢。',
+            '判斷為詐騙。政府機關的網址不會是短網址。'
+        ]
+    },
+    {
+        text: 'Q9. （情境）當您安裝一個新的手機 App（例如手電筒或修圖軟體）時，它向您要求「讀取聯絡人」和「讀取簡訊」的權限，您會？',
+        options: [
+            '為了正常使用 App，通常會全部「允許」。',
+            '覺得有點奇怪，但如果很多人在用，應該沒問題。',
+            '仔細思考「為什麼手電筒需要我的簡訊？」，並拒絕不合理的權限。',
+            '立即解除安裝這個 App，並去商店留下負評警告他人。'
+        ]
+    },
+    {
+        text: 'Q10. （情境）一通自稱「檢警單位」的電話，告知您「身份被冒用，涉及洗錢案件」，並要求您「為配合偵查，必須將名下存款轉至『安全監管帳戶』」，否則將凍結您所有資產。您會？',
+        options: [
+            '極度震驚與害怕，完全配合「檢察官」的指示轉帳。',
+            '要求對方提供單位、姓名和編號，並表示要掛斷電話後自行查證。',
+            '保持冷靜，並告知對方：「請發正式傳票給我」，然後掛斷。',
+            '識破這是典型的「假檢警」詐騙，並反問對方：「你知道我是誰嗎？」'
+        ]
+    },
+    {
+        text: 'Q11. （情境）您收到一則簡訊：『恭喜您！您在 XX 商城的中秋活動中抽中了 5000 元禮券。請點擊連結，並在 3 天內填寫資料領獎。』您會？',
+        options: [
+            '太幸運了！馬上點連結填寫領獎資料。',
+            '有點懷疑，但先點進去看要填什麼，如果太奇怪就關掉。',
+            '自行打開 XX 商城的官方 App 或網站，查看是否有這個活動。',
+            '獎品通常是假的，而且又是短網址，直接刪除。'
+        ]
+    },
+    {
+        text: 'Q12. （情境）您在 FB/IG 看到一則「家庭代工/PO文小幫手」的徵才廣告，號稱「在家工作，日賺 2000-5000 元，只需手機」。要求您先加入 LINE 帳號面試。您會？',
+        options: [
+            '值得一試，先加 LINE 了解看看，也許是個好機會。',
+            '保持戒心，但問清楚工作內容，如果不用先付錢就還好。',
+            '搜尋這家公司的評價，並質疑「日賺 5000」的合理性。',
+            '100% 是詐騙。高薪工作不可能這麼簡單，還可能變人頭帳戶。'
+        ]
+    },
+    {
+        text: 'Q13. 在判斷一則訊息是否為詐騙時，您更依賴？',
+        options: [
+            '我的「直覺」和對方的「態度」。如果對方很誠懇或很兇，感覺就像真的。',
+            '內容的「合理性」。如果情境聽起來太誇張，就可能是假的。',
+            '查核「具體細節」。例如檢查網址拼寫、公司統編、電話區碼等。',
+            '詢問「專業意見」。我會先把訊息轉傳給朋友、家人或 165 詢問。'
+        ]
+    },
+    {
+        text: 'Q14. 總結來說，當面對一個「限時好康」或「緊急威脅」時，您更傾向於？',
+        options: [
+            '先行動再說，怕錯過機會或遭受損失。',
+            '先冷靜下來，花時間查證，寧可錯過也不願冒險。',
+            '依賴我的直覺，如果感覺對了就衝，感覺不對就停。',
+            '仔細分析細節，不論是好是壞，有證據才行動。'
+        ]
+    },
+    {
+        text: 'Q15. （心理特質）在日常生活中，當朋友向您推薦一個新的 App、投資商品或網路服務時，您的第一反應通常是？',
+        options: [
+            '朋友推薦的應該不錯，我會立刻下載或嘗試。',
+            '先了解一下基本功能，如果朋友說得有道理就試試看。',
+            '會仔細研究評價、安全性和隱私條款後再決定。',
+            '通常會婉拒，我比較習慣使用自己熟悉的服務。'
+        ]
+    }
 ];
 /**
- * SCORING_MAP: 每題每選項對 10 種動物的分數與 meta（年齡票/性別票/awarenessDelta/ fraudRisk）
- * 這是我為你完整設計好的映射（簡潔版，數值可依需微調）
+ * 四大靈魂軸線評分系統 (16 型均勻分布版防詐人格)
+ * 軸線說明：
+ * K/T (權威): K (Skeptical - 懷疑型) / T (Trusting - 信任型)
+ * D/I (時間): D (Deliberate - 審慎型) / I (Immediate - 即時型)
+ * S/G (驗證): S (Specifics - 細節型) / G (Gist - 直覺型)
+ * L/R (獎懲): L (Loss-Averse - 規避損失) / R (Reward-Seeking - 追求獎勵)
  *
- * animals key order:
- * [Fox,Turtle,Dog,Cat,Owl,Squirrel,Shark,Mouse,Octopus,Dove]
+ * 【均勻分布設計原則】
+ * 1. 每個軸線在所有題目中保持±0的平衡，避免系統性偏向
+ * 2. 降低單題影響力，使用較小的分數值(±1為主)
+ * 3. 確保每個16型組合都有相等的理論出現機率
+ * 4. 移除權重系統，所有題目等權重處理
+ * 5. 增加題目數量以提高分布的穩定性
  */
 const SCORING_MAP = {
+    // Q1: 年齡區間 - 影響詐騙風險分佈
     q1: [
-        // 男生
-        { animalScores: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: { male: 10 }, fraudRisk: {}, awarenessDelta: 0 },
-        // 女生
-        { animalScores: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: { female: 10 }, fraudRisk: {}, awarenessDelta: 0 }
+        { axes: [0, 0, 0, 0], ageGroup: 'teen', awarenessDelta: -1 }, // 18歲以下
+        { axes: [0, 0, 0, 0], ageGroup: 'young', awarenessDelta: 0 }, // 19-25歲  
+        { axes: [0, 0, 0, 0], ageGroup: 'adult', awarenessDelta: +1 }, // 26-35歲
+        { axes: [0, 0, 0, 0], ageGroup: 'middle', awarenessDelta: +2 }, // 36-50歲
+        { axes: [0, 0, 0, 0], ageGroup: 'senior', awarenessDelta: +1 } // 51歲以上
     ],
+    // Q2: 性別 - 影響詐騙風險類型
     q2: [
-        // TikTok/IG/Discord -> 年輕世代
-        { animalScores: [2, 0, 0, 1, 0, 0, 1, 1, 1, 0], ageVotes: { 'A': 3, 'B': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '8_lottery': 1, '3_ecommerce': 1 }, awarenessDelta: -2 },
-        // LINE/FB Messenger -> 青年
-        { animalScores: [1, 0, 1, 0, 1, 0, 0, 0, 0, 0], ageVotes: { 'B': 2, 'C': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '9_investment': 1 }, awarenessDelta: 0 },
-        // Facebook/Email -> 中年
-        { animalScores: [0, 1, 1, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'D': 3, 'E': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '2_gov': 1 }, awarenessDelta: 0 },
-        // 電話/簡訊為主 -> 高齡
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 2, 0, 1], ageVotes: { 'E': 2, 'F': 3 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '7_family': 2, '2_gov': 1 }, awarenessDelta: +1 }
+        { axes: [0, 0, 0, 0], gender: 'male', awarenessDelta: 0 }, // 男性
+        { axes: [0, 0, 0, 0], gender: 'female', awarenessDelta: 0 }, // 女性  
+        { axes: [0, 0, 0, 0], gender: 'other', awarenessDelta: 0 } // 其他
     ],
+    // Q3: 電商客服詐騙情境 - 均勻分布設計
     q3: [
-        // 馬上參加 -> 學生/年輕人易受娛樂詐騙
-        { animalScores: [3, 0, 0, 1, 0, 0, 1, 1, 1, 0], ageVotes: { 'A': 3, 'B': 1 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '8_lottery': 3, '3_ecommerce': 1 }, awarenessDelta: -3 },
-        // 看一下再決定 -> 青年
-        { animalScores: [1, 0, 0, 0, 1, 0, 0, 1, 1, 0], ageVotes: { 'B': 2, 'C': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '8_lottery': 2 }, awarenessDelta: -1 },
-        // 先查活動 -> 中年
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 2, 'D': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 直接刪除 -> 年長者
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 0], ageVotes: { 'E': 2, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 }
+        { axes: [+1, +1, +1, +1], fraudRisk: ['ecommerce'], awarenessDelta: -3 }, // A: TISR
+        { axes: [+1, -1, -1, -1], fraudRisk: ['ecommerce'], awarenessDelta: +1 }, // B: TDGL  
+        { axes: [-1, -1, +1, +1], fraudRisk: [], awarenessDelta: +3 }, // C: KDSR
+        { axes: [-1, +1, -1, -1], fraudRisk: [], awarenessDelta: +3 } // D: KIGL
     ],
+    // Q4: 投資詐騙情境 - 均勻分布設計
     q4: [
-        // 想了解兼職 -> 學生/初入社會
-        { animalScores: [2, 0, 0, 0, 0, 0, 0, 1, 2, 0], ageVotes: { 'A': 2, 'B': 3 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '9_investment': 2, '5_offer': 2 }, awarenessDelta: -2 },
-        // 可能但要研究 -> 青年
-        { animalScores: [1, 0, 2, 0, 0, 1, 0, 2, 1, 0], ageVotes: { 'B': 1, 'C': 3 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '9_investment': 1 }, awarenessDelta: -1 },
-        // 聽起來可疑 -> 中年
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 1, 'D': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 絕對詐騙 -> 年長者
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'E': 2, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +3 }
+        { axes: [+1, +1, -1, +1], fraudRisk: ['investment'], awarenessDelta: -3 }, // A: TIGR
+        { axes: [-1, -1, -1, -1], fraudRisk: [], awarenessDelta: +2 }, // B: KDGL
+        { axes: [+1, -1, +1, -1], fraudRisk: ['investment'], awarenessDelta: 0 }, // C: TDSL
+        { axes: [-1, +1, +1, +1], fraudRisk: [], awarenessDelta: +3 } // D: KISR
     ],
+    // Q5: 釣魚郵件情境 - 均勻分布設計
     q5: [
-        // 先匯款救急 -> 情感導向，易受親情詐騙
-        { animalScores: [0, 0, 3, 0, 0, 0, 0, 2, 0, 0], ageVotes: { 'B': 1, 'C': 1, 'F': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '7_family': 3 }, awarenessDelta: -3 },
-        // 打電話確認 -> 成熟防詐
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 2, 'D': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 問詳細情況 -> 謹慎
-        { animalScores: [1, 0, 1, 0, 0, 0, 0, 1, 0, 0], ageVotes: { 'B': 1, 'C': 2, 'D': 1 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '7_family': 1 }, awarenessDelta: 0 },
-        // 找家人確認 -> 年長者習慣
-        { animalScores: [0, 1, 1, 0, 0, 0, 0, 0, 0, 0], ageVotes: { 'D': 1, 'E': 2, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 }
+        { axes: [+1, +1, +1, -1], fraudRisk: ['phishing'], awarenessDelta: -2 }, // A: TISL
+        { axes: [+1, -1, -1, +1], fraudRisk: ['phishing'], awarenessDelta: -1 }, // B: TDGR
+        { axes: [-1, -1, +1, -1], fraudRisk: [], awarenessDelta: +2 }, // C: KDSL
+        { axes: [-1, +1, -1, +1], fraudRisk: [], awarenessDelta: +3 } // D: KIGR
     ],
+    // Q6: HTTPS安全意識 - 均勻分布設計
     q6: [
-        // 照指示做 -> 易受官方詐騙
-        { animalScores: [0, 0, 0, 0, 0, 0, 0, 2, 0, 1], ageVotes: { 'D': 1, 'E': 2, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '2_gov': 3, '1_bank': 2 }, awarenessDelta: -3 },
-        // 掛斷後打官方電話 -> 最佳防詐
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 3, 'D': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +3 },
-        // 請對方稍等查證 -> 謹慎
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 0], ageVotes: { 'D': 2, 'E': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 直接掛斷 -> 青年直覺防詐
-        { animalScores: [1, 0, 1, 0, 0, 1, 0, 1, 0, 0], ageVotes: { 'B': 2, 'C': 1 }, genderVotes: { female: 1, male: 1 }, fraudRisk: {}, awarenessDelta: +2 }
+        { axes: [+1, -1, +1, +1], fraudRisk: ['ecommerce'], awarenessDelta: -1 }, // A: TDSR
+        { axes: [-1, +1, +1, -1], fraudRisk: [], awarenessDelta: +3 }, // B: KISL
+        { axes: [+1, +1, -1, -1], fraudRisk: ['ecommerce'], awarenessDelta: -2 }, // C: TIGL
+        { axes: [-1, -1, -1, +1], fraudRisk: [], awarenessDelta: +2 } // D: KDGR
     ],
+    // Q7: 熟人連結詐騙 - 重複組合增加權重
     q7: [
-        // 有錢就投 -> 年輕人FOMO心理
-        { animalScores: [2, 0, 0, 0, 0, 0, 2, 0, 1, 0], ageVotes: { 'A': 1, 'B': 3, 'C': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '9_investment': 3 }, awarenessDelta: -3 },
-        // 小額試試 -> 青年謹慎嘗試
-        { animalScores: [0, 1, 0, 0, 2, 0, 1, 0, 0, 0], ageVotes: { 'B': 1, 'C': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '9_investment': 1 }, awarenessDelta: +1 },
-        // 詳細研究風險 -> 中年理性
-        { animalScores: [0, 1, 0, 0, 2, 1, 0, 0, 0, 0], ageVotes: { 'C': 2, 'D': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 謹慎態度 -> 年長者保守
-        { animalScores: [0, 2, 0, 0, 1, 1, 0, 0, 0, 0], ageVotes: { 'E': 2, 'F': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 }
+        { axes: [-1, -1, -1, -1], fraudRisk: [], awarenessDelta: +3 }, // A: KDGL
+        { axes: [+1, +1, +1, +1], fraudRisk: ['social'], awarenessDelta: -3 }, // B: TISR
+        { axes: [+1, -1, +1, -1], fraudRisk: [], awarenessDelta: +1 }, // C: TDSL
+        { axes: [-1, +1, -1, +1], fraudRisk: [], awarenessDelta: +2 } // D: KIGR
     ],
+    // Q8: 政府機關詐騙 - 重複組合增加權重
     q8: [
-        // 照連結付款 -> 易受電商詐騙
-        { animalScores: [0, 0, 0, 1, 0, 0, 0, 2, 1, 0], ageVotes: { 'A': 1, 'B': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '3_ecommerce': 3 }, awarenessDelta: -3 },
-        // 查物流官網 -> 理性驗證
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 3, 'D': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 聯絡寄件人 -> 謹慎確認
-        { animalScores: [0, 1, 0, 0, 1, 0, 0, 0, 0, 0], ageVotes: { 'D': 2, 'E': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 確認後忽略 -> 年長者謹慎
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'E': 2, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 }
+        { axes: [+1, -1, -1, +1], fraudRisk: ['government'], awarenessDelta: -2 }, // A: TDGR
+        { axes: [-1, +1, +1, +1], fraudRisk: [], awarenessDelta: +3 }, // B: KISR
+        { axes: [+1, +1, -1, -1], fraudRisk: ['government'], awarenessDelta: -3 }, // C: TIGL
+        { axes: [-1, -1, +1, -1], fraudRisk: [], awarenessDelta: +2 } // D: KDSL
     ],
+    // Q9: App權限詐騙 - 重複組合增加權重
     q9: [
-        // 想買試試 -> 年輕人容易受醫療廣告吸引
-        { animalScores: [2, 0, 0, 0, 0, 0, 1, 0, 1, 0], ageVotes: { 'A': 2, 'B': 1 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '5_offer': 2 }, awarenessDelta: -2 },
-        // 上網查評價 -> 青年習慣
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'B': 1, 'C': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 問醫生朋友 -> 中年理性
-        { animalScores: [1, 0, 2, 0, 0, 1, 0, 1, 1, 0], ageVotes: { 'C': 2, 'D': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 不信網路醫療 -> 年長者謹慎
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'E': 3, 'F': 2 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 }
+        { axes: [-1, -1, +1, +1], fraudRisk: [], awarenessDelta: +3 }, // A: KDSR
+        { axes: [+1, +1, +1, -1], fraudRisk: ['privacy'], awarenessDelta: -2 }, // B: TISL
+        { axes: [+1, -1, -1, -1], fraudRisk: ['privacy'], awarenessDelta: -1 }, // C: TDGL
+        { axes: [-1, +1, -1, +1], fraudRisk: [], awarenessDelta: +2 } // D: KIGR
     ],
+    // Q10: 假檢警詐騙 - 重複組合增加權重
     q10: [
-        // 趨勢要跟上 -> 青年FOMO
-        { animalScores: [2, 0, 1, 0, 0, 0, 0, 1, 1, 0], ageVotes: { 'B': 3, 'C': 1 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '9_investment': 2 }, awarenessDelta: -1 },
-        // 小心嘗試 -> 青年謹慎
-        { animalScores: [1, 1, 1, 0, 1, 0, 0, 0, 0, 0], ageVotes: { 'C': 3, 'D': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: { '9_investment': 1 }, awarenessDelta: 0 },
-        // 風險高要研究 -> 中年理性
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'D': 3, 'E': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 太複雜不碰 -> 年長者保守
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'E': 2, 'F': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 }
+        { axes: [+1, +1, -1, +1], fraudRisk: ['authority'], awarenessDelta: -4 }, // A: TIGR
+        { axes: [-1, -1, -1, -1], fraudRisk: [], awarenessDelta: +3 }, // B: KDGL
+        { axes: [+1, -1, +1, +1], fraudRisk: [], awarenessDelta: +1 }, // C: TDSR
+        { axes: [-1, +1, +1, -1], fraudRisk: [], awarenessDelta: +2 } // D: KISL
     ],
+    // Q11: 中獎詐騙 - 重複組合增加權重
     q11: [
-        // 直接填寫 -> 年輕人個資意識低
-        { animalScores: [1, 0, 0, 0, 0, 1, 1, 1, 0, 0], ageVotes: { 'A': 3, 'B': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: { '3_ecommerce': 1, '9_investment': 1 }, awarenessDelta: -2 },
-        // 看情況填寫 -> 青年
-        { animalScores: [0, 1, 0, 0, 1, 1, 0, 0, 0, 0], ageVotes: { 'B': 1, 'C': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: 0 },
-        // 只填必要欄位 -> 中年謹慎
-        { animalScores: [0, 2, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'C': 1, 'D': 3, 'E': 1 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 盡量不填個資 -> 年長者高度謹慎
-        { animalScores: [0, 2, 0, 0, 1, 0, 0, 0, 0, 1], ageVotes: { 'E': 2, 'F': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 }
+        { axes: [+1, -1, -1, -1], fraudRisk: ['lottery'], awarenessDelta: -1 }, // A: TDGL
+        { axes: [-1, +1, -1, -1], fraudRisk: [], awarenessDelta: +3 }, // B: KIGL
+        { axes: [+1, +1, +1, +1], fraudRisk: ['lottery'], awarenessDelta: -3 }, // C: TISR
+        { axes: [-1, -1, +1, +1], fraudRisk: [], awarenessDelta: +2 } // D: KDSR
     ],
+    // Q12: 工作詐騙 - 重複組合增加權重
     q12: [
-        // 感覺對不對 -> 直覺判斷，年輕人特徵
-        { animalScores: [1, 0, 0, 1, 0, 0, 0, 1, 0, 1], ageVotes: { 'A': 2, 'B': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: {}, awarenessDelta: -1 },
-        // 內容破綻 -> 青年邏輯思維
-        { animalScores: [0, 1, 0, 0, 2, 0, 0, 0, 0, 0], ageVotes: { 'B': 1, 'C': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +1 },
-        // 查證來源 -> 中年系統化防詐
-        { animalScores: [0, 1, 0, 0, 3, 0, 0, 0, 0, 0], ageVotes: { 'C': 2, 'D': 3 }, genderVotes: { male: 1, female: 1 }, fraudRisk: {}, awarenessDelta: +2 },
-        // 詢問專業人士 -> 年長者求助習慣
-        { animalScores: [1, 0, 2, 0, 0, 1, 0, 1, 1, 0], ageVotes: { 'D': 1, 'E': 2, 'F': 2 }, genderVotes: { female: 1, male: 1 }, fraudRisk: {}, awarenessDelta: +1 }
+        { axes: [-1, +1, +1, -1], fraudRisk: [], awarenessDelta: +3 }, // A: KISL
+        { axes: [+1, -1, -1, +1], fraudRisk: ['job'], awarenessDelta: -1 }, // B: TDGR
+        { axes: [-1, -1, -1, +1], fraudRisk: [], awarenessDelta: +2 }, // C: KDGR
+        { axes: [+1, +1, +1, -1], fraudRisk: ['job'], awarenessDelta: -2 } // D: TISL
     ],
+    // Q13: 判斷依據 - 重複組合增加權重
     q13: [
-        // 主觀希望成為哪類（非必填，作為交叉參考）
-        { animalScores: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: {}, fraudRisk: {}, awarenessDelta: 0 }, // 狐狸
-        { animalScores: [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: {}, fraudRisk: {}, awarenessDelta: 0 }, // 烏龜
-        { animalScores: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: {}, fraudRisk: {}, awarenessDelta: 0 }, // 狗
-        { animalScores: [0, 0, 0, 1, 0, 0, 0, 0, 0, 0], ageVotes: {}, genderVotes: {}, fraudRisk: {}, awarenessDelta: 0 } // 貓
+        { axes: [+1, +1, -1, -1], fraudRisk: [], awarenessDelta: 0 }, // A: TIGL
+        { axes: [-1, -1, +1, -1], fraudRisk: [], awarenessDelta: +2 }, // B: KDSL
+        { axes: [+1, -1, +1, +1], fraudRisk: [], awarenessDelta: +1 }, // C: TDSR
+        { axes: [-1, +1, -1, +1], fraudRisk: [], awarenessDelta: +1 } // D: KIGR
+    ],
+    // Q14: 總結行為模式 - 重複組合增加權重
+    q14: [
+        { axes: [-1, -1, -1, +1], fraudRisk: [], awarenessDelta: +2 }, // A: KDGR
+        { axes: [+1, +1, +1, +1], fraudRisk: [], awarenessDelta: -2 }, // B: TISR
+        { axes: [-1, +1, -1, -1], fraudRisk: [], awarenessDelta: +1 }, // C: KIGL
+        { axes: [+1, -1, +1, -1], fraudRisk: [], awarenessDelta: +3 } // D: TDSL
+    ],
+    // Q15: 朋友推薦 - 最終平衡調整
+    q15: [
+        { axes: [+1, -1, -1, +1], fraudRisk: [], awarenessDelta: -1 }, // A: TDGR
+        { axes: [-1, -1, +1, +1], fraudRisk: [], awarenessDelta: +1 }, // B: KDSR
+        { axes: [+1, +1, -1, +1], fraudRisk: [], awarenessDelta: -2 }, // C: TIGR
+        { axes: [-1, +1, +1, -1], fraudRisk: [], awarenessDelta: +2 } // D: KISL
     ]
 };
 /* state */
@@ -183,12 +290,16 @@ function nextIfSelected() {
     selected.value = answers[currentIndex.value] ?? null;
 }
 function finish() {
-    if (answers.slice(0, questions.length - 1).some(a => a === null)) {
-        return alert('請完成所有題目（第13題為選填）');
+    if (answers.slice(0, questions.length).some(a => a === null)) {
+        return alert('請完成所有題目');
     }
     // 計算結果
     const result = calculateResult(answers);
     console.log('Quiz完成，結果:', result); // 調試用
+    // 分析16種動物出現機率（開發除錯用）
+    if (import.meta.env.DEV) {
+        analyzeAnimalDistribution();
+    }
     // 保存測驗結果到 store
     try {
         soulAnimalStore.saveRecord(props.currentUser, result);
@@ -197,8 +308,98 @@ function finish() {
     catch (error) {
         console.error('保存測驗結果失敗:', error);
     }
+    // 🎉 Quiz 完成獎勵：給予 100 XP
+    try {
+        soulAnimalSystem.awardQuizCompletionXP();
+        console.log(`🎉 Quiz 完成！用戶 ${props.currentUser} 獲得 100 XP 獎勵`);
+    }
+    catch (error) {
+        console.error('獎勵 XP 失敗:', error);
+    }
     // emit 結果給父元件
     emit('resultReady', result);
+}
+// 開發用：分析16種動物的理論出現機率
+function analyzeAnimalDistribution() {
+    console.log('=== 16種動物機率分析 ===');
+    // 模擬1000次隨機答題
+    const animalCounts = {};
+    const totalTests = 1000;
+    for (let test = 0; test < totalTests; test++) {
+        // 生成隨機答案 (跳過前2題人口統計)
+        const randomAnswers = [
+            0, 0, // Q1, Q2: 人口統計，不影響動物類型
+            Math.floor(Math.random() * 4), // Q3
+            Math.floor(Math.random() * 4), // Q4
+            Math.floor(Math.random() * 4), // Q5
+            Math.floor(Math.random() * 4), // Q6
+            Math.floor(Math.random() * 4), // Q7
+            Math.floor(Math.random() * 4), // Q8
+            Math.floor(Math.random() * 4), // Q9
+            Math.floor(Math.random() * 4), // Q10
+            Math.floor(Math.random() * 4), // Q11
+            Math.floor(Math.random() * 4), // Q12
+            Math.floor(Math.random() * 4), // Q13
+            Math.floor(Math.random() * 4) // Q14
+        ];
+        const result = calculateResult(randomAnswers);
+        const animalCode = result.animalType.code;
+        animalCounts[animalCode] = (animalCounts[animalCode] || 0) + 1;
+    }
+    // 16 型動物對應表（用於顯示名稱）
+    const animalNameMap = {
+        'KDSL': '🦊 狐狸型', 'KDSR': '🦅 老鷹型', 'KDGL': '🦉 貓頭鷹型', 'KDGR': '🦈 鯊魚型',
+        'KISL': '🐿️ 松鼠型', 'KISR': '🐙 章魚型', 'KIGL': '🐱 貓咪型', 'KIGR': '🐺 狼型',
+        'TDSL': '🐢 烏龜型', 'TDSR': '🐘 大象型', 'TDGL': '🦛 河馬型', 'TDGR': '🦍 金剛型',
+        'TISL': '🐭 老鼠型', 'TISR': '� 獅子型', 'TIGL': '🦌 麋鹿型', 'TIGR': '🐶 柴犬型'
+    };
+    // 排序並顯示結果
+    const sorted = Object.entries(animalCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([code, count]) => ({
+        code,
+        count,
+        percentage: ((count / totalTests) * 100).toFixed(1),
+        animal: animalNameMap[code] || code
+    }));
+    console.table(sorted);
+    console.log('總測試次數:', totalTests);
+    console.log('出現的動物種類:', Object.keys(animalCounts).length, '/ 16');
+    // 檢查是否有動物從未出現
+    const allCodes = ['KDSL', 'KDSR', 'KDGL', 'KDGR', 'KISL', 'KISR', 'KIGL', 'KIGR',
+        'TDSL', 'TDSR', 'TDGL', 'TDGR', 'TISL', 'TISR', 'TIGL', 'TIGR'];
+    const missingAnimals = allCodes.filter(code => !animalCounts[code]);
+    if (missingAnimals.length > 0) {
+        console.warn('從未出現的動物類型:', missingAnimals);
+    }
+    console.log('=== 分析結束 ===');
+    // 檢查軸線分布
+    const axesStats = { kt: [], di: [], sg: [], lr: [] };
+    for (let test = 0; test < 100; test++) {
+        const randomAnswers = Array(14).fill(0).map((_, i) => i < 2 ? 0 : Math.floor(Math.random() * 4));
+        const axesScores = [0, 0, 0, 0];
+        randomAnswers.forEach((choice, idx) => {
+            const key = `q${idx + 1}`;
+            const map = SCORING_MAP[key];
+            if (map && map[choice] && map[choice].axes) {
+                map[choice].axes.forEach((score, axisIdx) => {
+                    axesScores[axisIdx] += score;
+                });
+            }
+        });
+        axesStats.kt.push(axesScores[0]);
+        axesStats.di.push(axesScores[1]);
+        axesStats.sg.push(axesScores[2]);
+        axesStats.lr.push(axesScores[3]);
+    }
+    console.log('軸線分數統計 (100次測試):');
+    Object.entries(axesStats).forEach(([axis, scores]) => {
+        const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+        const negCount = scores.filter(s => s < 0).length;
+        const posCount = scores.filter(s => s > 0).length;
+        const zeroCount = scores.filter(s => s === 0).length;
+        console.log(`${axis}: 平均=${avg.toFixed(2)}, 負數=${negCount}%, 正數=${posCount}%, 零=${zeroCount}%`);
+    });
 }
 /* compute preview of awareness */
 const awarenessPreview = computed(() => {
@@ -218,94 +419,255 @@ const awarenessPreview = computed(() => {
 });
 /* ========== 核心計算函數 ========== */
 function calculateResult(answersArray) {
-    // accumulators
-    const animalKeys = ['Fox', 'Turtle', 'Dog', 'Cat', 'Owl', 'Squirrel', 'Shark', 'Mouse', 'Octopus', 'Dove'];
-    const animalTotals = Object.fromEntries(animalKeys.map(k => [k, 0]));
-    const ageBuckets = { 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0 }; // A:12-18, B:19-25, C:26-35, D:36-50, E:51-65, F:66+
-    const genderBuckets = { male: 0, female: 0, other: 0 };
-    const fraudTypes = {
-        '1_bank': 0, '2_gov': 0, '3_ecommerce': 0, '4_loan': 0, '5_offer': 0, '6_social': 0, '7_family': 0, '8_lottery': 0, '9_investment': 0, '10_law': 0
-    };
+    // 四大軸線累計器 [K/T, D/I, S/G, L/R]
+    const axesScores = [0, 0, 0, 0];
     let awareness = 50;
+    const fraudRisks = [];
+    let ageGroup = 'adult';
+    let gender = 'unknown';
+    // 科技素養評分系統 (Q5, Q6, Q8, Q9, Q11 專項評估)
+    let techLiteracy = 0;
+    const techQuestions = [4, 5, 7, 8, 10]; // Q5, Q6, Q8, Q9, Q11 (0-based index)
     answersArray.forEach((choice, idx) => {
         const key = `q${idx + 1}`;
         const map = SCORING_MAP[key];
-        if (!map)
+        if (!map || !map[choice])
             return;
-        const option = map[choice] || null;
-        if (!option)
-            return;
-        // animalScores
-        option.animalScores.forEach((v, i) => {
-            animalTotals[animalKeys[i]] += v;
-        });
-        // ageVotes
-        Object.entries(option.ageVotes || {}).forEach(([k, v]) => { if (ageBuckets[k] !== undefined)
-            ageBuckets[k] += v; });
-        // genderVotes
-        Object.entries(option.genderVotes || {}).forEach(([k, v]) => { if (genderBuckets[k] !== undefined)
-            genderBuckets[k] += v; });
-        // fraudRisk
-        Object.entries(option.fraudRisk || {}).forEach(([k, v]) => { if (fraudTypes[k] !== undefined)
-            fraudTypes[k] += v; });
-        // awareness
+        const option = map[choice];
+        // 計算權重 (Q13, Q14 為自我認知題，權重加重)
+        const weight = option.weight || 1.0;
+        // 累計四軸分數 (應用權重)
+        if (option.axes) {
+            option.axes.forEach((score, axisIdx) => {
+                axesScores[axisIdx] += Math.round(score * weight);
+            });
+        }
+        // 累計其他屬性
         awareness += (option.awarenessDelta || 0);
+        if (option.fraudRisk)
+            fraudRisks.push(...option.fraudRisk);
+        if (option.ageGroup)
+            ageGroup = option.ageGroup;
+        if (option.gender)
+            gender = option.gender;
+        // 科技素養專項評分 (獨立計算)
+        if (techQuestions.includes(idx)) {
+            const techScore = option.awarenessDelta || 0;
+            if (techScore >= 2)
+                techLiteracy += 2; // 高科技素養
+            else if (techScore >= 0)
+                techLiteracy += 1; // 中等科技素養
+            else
+                techLiteracy += 0; // 低科技素養
+        }
     });
-    // normalize animal totals to determine top animal
-    const animalsSorted = Object.entries(animalTotals).sort((a, b) => b[1] - a[1]);
-    const top1 = animalsSorted[0]; // [name,score]
-    const top2 = animalsSorted[1];
-    let finalAnimal = top1[0];
-    let mixed = null;
-    if (top2 && top1[1] > 0) {
-        const pct = (top2[1] / top1[1]) * 100;
-        if (pct >= 85) { // if second is close (>=85% of top1), mark mixed
-            mixed = `${top1[0]}-${top2[0]}`;
-        }
-    }
-    // agePrediction - 移除不確定，始終給出預測
-    const ageSorted = Object.entries(ageBuckets).sort((a, b) => b[1] - a[1]);
-    const totalAgeVotes = Object.values(ageBuckets).reduce((a, b) => a + b, 0);
-    // 年齡分層對應表
-    const ageGroupMap = {
-        'A': '12-18歲 (學生期)',
-        'B': '19-25歲 (初入社會)',
-        'C': '26-35歲 (職場初中期)',
-        'D': '36-50歲 (家庭期)',
-        'E': '51-65歲 (穩定期)',
-        'F': '66歲以上 (退休族)'
-    };
-    let agePred = ageGroupMap['C']; // 預設為最常見的C層
-    if (totalAgeVotes > 0) {
-        const topScore = ageSorted[0][1];
-        const confidence = (topScore / totalAgeVotes) * 100;
-        agePred = ageGroupMap[ageSorted[0][0]];
-        // 低信心度時顯示信心度
-        if (confidence < 40) {
-            agePred += ` (${Math.round(confidence)}%信心度)`;
-        }
-    }
-    // genderPrediction
-    const genderSorted = Object.entries(genderBuckets).sort((a, b) => b[1] - a[1]);
-    const genderPred = genderSorted[0][1] === 0 ? '不確定' : genderSorted[0][0];
-    // awareness label
+    // 根據四軸分數決定 16 型動物
+    const animalType = determineAnimalType(axesScores);
+    // 計算防詐意識等級
     let awarenessLabel = '中等';
-    if (awareness >= 65)
+    if (awareness >= 70)
         awarenessLabel = '高';
-    else if (awareness < 45)
+    else if (awareness >= 50)
+        awarenessLabel = '中等';
+    else
         awarenessLabel = '低';
-    // top 3 fraud risks
-    const fraudSorted = Object.entries(fraudTypes).sort((a, b) => b[1] - a[1]).filter(x => x[1] > 0).slice(0, 3);
+    // 科技素養等級評定 (0-10 分制)
+    let techLabel = '低';
+    if (techLiteracy >= 7)
+        techLabel = '高';
+    else if (techLiteracy >= 4)
+        techLabel = '中等';
+    else
+        techLabel = '低';
+    // 根據動物人格判斷 Top 3 詐騙風險 (IF...THEN... 邏輯規則)
+    const personalizedRisks = getFraudRisksByAnimal(animalType.code);
     return {
-        animalTotals,
-        finalAnimal: mixed ? mixed : finalAnimal,
-        topBreakdown: animalsSorted.slice(0, 3),
-        agePrediction: agePred,
-        genderPrediction: genderPred,
-        awareness: Math.round(awareness),
+        animalType: animalType.type,
+        animalData: animalType,
+        axesScores,
+        axesAnalysis: analyzeAxes(axesScores),
+        awareness: Math.max(0, Math.min(100, Math.round(awareness))),
         awarenessLabel,
-        topFraudRisks: fraudSorted
+        techLiteracy,
+        techLabel,
+        ageGroup,
+        gender,
+        topFraudRisks: personalizedRisks, // 使用人格化風險分析
+        // 向後兼容的欄位
+        finalAnimal: animalType.type,
+        agePrediction: ageGroup,
+        genderPrediction: gender
     };
+}
+// 根據四軸分數決定 16 型動物
+function determineAnimalType(axesScores) {
+    const [kt, di, sg, lr] = axesScores;
+    console.log('=== 動物類型計算 Debug ===');
+    console.log('四軸分數:', axesScores);
+    console.log('kt:', kt, 'di:', di, 'sg:', sg, 'lr:', lr);
+    // 決定每個軸線的傾向 (K/T, D/I, S/G, L/R)
+    const authority = kt < 0 ? 'K' : 'T'; // 懷疑 vs 信任
+    const timing = di < 0 ? 'D' : 'I'; // 審慎 vs 即時  
+    const verification = sg < 0 ? 'G' : 'S'; // 直覺 vs 細節
+    const motivation = lr < 0 ? 'L' : 'R'; // 損失規避 vs 獎勵追求
+    const typeCode = authority + timing + verification + motivation;
+    console.log('軸線判斷:');
+    console.log('authority:', kt, '->', authority, '(', kt < 0 ? '懷疑' : '信任', ')');
+    console.log('timing:', di, '->', timing, '(', di < 0 ? '審慎' : '即時', ')');
+    console.log('verification:', sg, '->', verification, '(', sg < 0 ? '直覺' : '細節', ')');
+    console.log('motivation:', lr, '->', motivation, '(', lr < 0 ? '損失規避' : '獎勵追求', ')');
+    console.log('最終類型代碼:', typeCode);
+    // 16 型動物對應表
+    const animalMap = {
+        // 深潜分析局 (K-D - 懷疑且審慎)  
+        'KDSL': { type: 'fox', name: '🦊 狐狸型', group: '深潛分析局', code: 'KDSL' },
+        'KDSR': { type: 'eagle', name: '🦅 老鷹型', group: '深潛分析局', code: 'KDSR' },
+        'KDGL': { type: 'owl', name: '🦉 貓頭鷹型', group: '深潛分析局', code: 'KDGL' },
+        'KDGR': { type: 'shark', name: '🦈 鯊魚型', group: '深潛分析局', code: 'KDGR' },
+        // 影襲特攻隊 (K-I - 懷疑但即時)
+        'KISL': { type: 'squirrel', name: '🐿️ 松鼠型', group: '影襲特攻隊', code: 'KISL' },
+        'KISR': { type: 'octopus', name: '🐙 章魚型', group: '影襲特攻隊', code: 'KISR' },
+        'KIGL': { type: 'cat', name: '🐱 貓咪型', group: '影襲特攻隊', code: 'KIGL' },
+        'KIGR': { type: 'wolf', name: '🐺 狼型', group: '影襲特攻隊', code: 'KIGR' },
+        // 重裝守備隊 (T-D - 信任且審慎)
+        'TDSL': { type: 'turtle', name: '🐢 烏龜型', group: '重裝守備隊', code: 'TDSL' },
+        'TDSR': { type: 'elephant', name: '🐘 大象型', group: '重裝守備隊', code: 'TDSR' },
+        'TDGL': { type: 'hippo', name: '🦛 河馬型', group: '重裝守備隊', code: 'TDGL' },
+        'TDGR': { type: 'gorilla', name: '🦍 金剛型', group: '重裝守備隊', code: 'TDGR' },
+        // 閃電先鋒 (T-I - 信任且即時)
+        'TISL': { type: 'mouse', name: '🐭 老鼠型', group: '閃電先鋒', code: 'TISL' },
+        'TISR': { type: 'lion', name: '� 獅子型', group: '閃電先鋒', code: 'TISR' },
+        'TIGL': { type: 'deer', name: '🦌 麋鹿型', group: '閃電先鋒', code: 'TIGL' },
+        'TIGR': { type: 'dog', name: '🐶 柴犬型', group: '閃電先鋒', code: 'TIGR' }
+    };
+    const result = animalMap[typeCode];
+    if (!result) {
+        console.warn('找不到對應的動物類型，使用預設狐狸型');
+        return animalMap['KDSL']; // 預設為狐狸型
+    }
+    console.log('找到動物類型:', result);
+    console.log('=== Debug 結束 ===');
+    return result;
+}
+// 分析四軸傾向
+function analyzeAxes(axesScores) {
+    const [kt, di, sg, lr] = axesScores;
+    return {
+        authority: {
+            score: kt,
+            tendency: kt <= 0 ? 'Skeptical (懷疑型)' : 'Trusting (信任型)',
+            strength: Math.abs(kt)
+        },
+        timing: {
+            score: di,
+            tendency: di <= 0 ? 'Deliberate (審慎型)' : 'Immediate (即時型)',
+            strength: Math.abs(di)
+        },
+        verification: {
+            score: sg,
+            tendency: sg <= 0 ? 'Gist (直覺型)' : 'Specifics (細節型)',
+            strength: Math.abs(sg)
+        },
+        motivation: {
+            score: lr,
+            tendency: lr <= 0 ? 'Loss-Averse (規避損失)' : 'Reward-Seeking (追求獎勵)',
+            strength: Math.abs(lr)
+        }
+    };
+}
+// 根據動物人格判斷個人化詐騙風險 (IF...THEN... 邏輯規則)
+function getFraudRisksByAnimal(animalCode) {
+    const riskDatabase = {
+        // 深潛分析局 (K-D) - 懷疑且審慎
+        'KDSL': [
+            ['複雜投資詐騙', '高', '對於過於複雜的投資商品可能因為想要理解而花費過多時間'],
+            ['權威偽裝詐騙', '中', '對專業權威的質疑可能不夠徹底'],
+            ['長期養套詐騙', '中', '謹慎的性格可能在長期接觸後降低警戒心']
+        ],
+        'KDSR': [
+            ['高報酬投資詐騙', '中', '對投資機會的敏銳度可能成為弱點'],
+            ['假專家詐騙', '低', '對權威的懷疑態度提供很好的保護'],
+            ['技術類詐騙', '中', '對新技術的興趣可能被利用']
+        ],
+        'KDGL': [
+            ['情感操控詐騙', '中', '直覺判斷可能被情緒化的詐騙手法影響'],
+            ['熟人詐騙', '低', '對人的懷疑態度提供保護'],
+            ['複雜金融詐騙', '低', '謹慎的分析能力很難被欺騙']
+        ],
+        'KDGR': [
+            ['高風險投資詐騙', '中', '對獎勵的敏感可能在謹慎分析後仍被說服'],
+            ['博弈類詐騙', '中', '對勝利的渴望可能成為弱點'],
+            ['競爭類詐騙', '中', '好勝心可能被利用']
+        ],
+        // 影襲特攻隊 (K-I) - 懷疑但即時
+        'KISL': [
+            ['緊急威脅詐騙', '中', '面對威脅時的快速反應可能不夠深思熟慮'],
+            ['損失恐懼詐騙', '高', '對損失的敏感和即時反應是主要弱點'],
+            ['時間壓力詐騙', '中', '在時間壓力下可能做出衝動決定']
+        ],
+        'KISR': [
+            ['快速獲利詐騙', '高', '對機會的敏感和快速行動可能被利用'],
+            ['限時優惠詐騙', '中', '害怕錯過機會的心理可能被操控'],
+            ['新潮詐騙', '中', '對新事物的好奇可能成為弱點']
+        ],
+        'KIGL': [
+            ['直覺陷阱詐騙', '中', '過度依賴直覺可能誤判複雜詐騙'],
+            ['情緒操控詐騙', '中', '情緒化的即時反應可能被利用'],
+            ['社交詐騙', '低', '獨立性格提供一定保護']
+        ],
+        'KIGR': [
+            ['競爭類詐騙', '高', '好勝心和快速行動的組合是主要弱點'],
+            ['挑戰類詐騙', '中', '喜歡挑戰的性格可能被利用'],
+            ['群體壓力詐騙', '中', '在群體中可能做出衝動決定']
+        ],
+        // 重裝守備隊 (T-D) - 信任且審慎
+        'TDSL': [
+            ['權威詐騙', '高', '對權威的信任是最大弱點'],
+            ['長期詐騙', '中', '謹慎但信任的態度可能在長期接觸後被利用'],
+            ['損失威脅詐騙', '高', '對損失的擔憂和對權威的信任結合是危險組合']
+        ],
+        'TDSR': [
+            ['投資專家詐騙', '高', '對專家的信任和對獎勵的渴望是主要弱點'],
+            ['穩健投資詐騙', '中', '看似穩健的投資方案可能降低警戒心'],
+            ['權威推薦詐騙', '高', '來自權威的推薦很難抗拒']
+        ],
+        'TDGL': [
+            ['情感詐騙', '中', '信任他人和依賴直覺的組合可能被利用'],
+            ['慈善詐騙', '中', '同情心可能被不當利用'],
+            ['熟人詐騙', '高', '對熟人的信任是最大弱點']
+        ],
+        'TDGR': [
+            ['權威投資詐騙', '高', '權威+獎勵的組合是最危險的弱點'],
+            ['成功故事詐騙', '中', '他人的成功故事可能很有說服力'],
+            ['群體投資詐騙', '高', '看到他人獲利會強化投資慾望']
+        ],
+        // 閃電先鋒 (T-I) - 信任且即時
+        'TISL': [
+            ['緊急詐騙', '高', '信任+恐慌的組合是最危險的弱點'],
+            ['權威威脅詐騙', '高', '對權威的信任在緊急情況下特別危險'],
+            ['親友緊急詐騙', '高', '對親友的信任和即時反應的組合']
+        ],
+        'TISR': [
+            ['快速機會詐騙', '高', '信任+機會敏感度是主要弱點'],
+            ['社群詐騙', '高', '在社群中容易被影響做出快速決定'],
+            ['新潮投資詐騙', '高', '對新事物的信任和快速行動']
+        ],
+        'TIGL': [
+            ['情感詐騙', '高', '信任+情感+直覺的組合極其危險'],
+            ['戀愛詐騙', '高', '情感操控是最大弱點'],
+            ['同情心詐騙', '高', '同情心可能被嚴重利用']
+        ],
+        'TIGR': [
+            ['社群投資詐騙', '高', '在群體中容易被成功故事說服'],
+            ['朋友推薦詐騙', '高', '對朋友的信任+快速行動是最大弱點'],
+            ['熱門趨勢詐騙', '高', '對熱門事物的敏感度和信任態度']
+        ]
+    };
+    return riskDatabase[animalCode] || [
+        ['一般詐騙', '中', '請保持基本的防詐意識'],
+        ['網路詐騙', '中', '注意網路安全'],
+        ['電話詐騙', '中', '小心陌生來電']
+    ];
 }
 debugger; /* PartiallyEnd: #3632/scriptSetup.vue */
 const __VLS_ctx = {
@@ -339,24 +701,69 @@ __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
 __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
     ...{ class: "absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent rounded-full" },
 });
-__VLS_asFunctionalElement(__VLS_elements.h2, __VLS_elements.h2)({
-    ...{ class: "text-2xl font-bold mb-2" },
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-center mb-8" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "inline-flex items-center gap-2 mb-4" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "w-8 h-8 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+    ...{ class: "text-lg" },
+});
+__VLS_asFunctionalElement(__VLS_elements.h1, __VLS_elements.h1)({
+    ...{ class: "text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "max-w-lg mx-auto space-y-4 text-slate-300 leading-relaxed" },
 });
 __VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
-    ...{ class: "text-sm text-slate-400 mb-4" },
+    ...{ class: "text-lg font-medium text-slate-200" },
 });
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "text-sm space-y-3" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-center" },
+});
+__VLS_asFunctionalElement(__VLS_elements.strong, __VLS_elements.strong)({
+    ...{ class: "text-cyan-400" },
+});
+__VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+    ...{ class: "bg-slate-800/50 rounded-lg p-3 border border-cyan-400/20" },
+});
+__VLS_asFunctionalElement(__VLS_elements.p, __VLS_elements.p)({
+    ...{ class: "text-xs text-cyan-300 font-medium mb-2" },
+});
+__VLS_asFunctionalElement(__VLS_elements.ul, __VLS_elements.ul)({
+    ...{ class: "text-xs space-y-1 text-slate-400" },
+});
+__VLS_asFunctionalElement(__VLS_elements.li, __VLS_elements.li)({});
+__VLS_asFunctionalElement(__VLS_elements.li, __VLS_elements.li)({});
+__VLS_asFunctionalElement(__VLS_elements.li, __VLS_elements.li)({});
+__VLS_asFunctionalElement(__VLS_elements.li, __VLS_elements.li)({});
 if (!__VLS_ctx.started) {
     // @ts-ignore
     [started,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "flex gap-3" },
+        ...{ class: "flex flex-col sm:flex-row gap-3 justify-center" },
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (__VLS_ctx.start) },
-        ...{ class: "px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105" },
+        ...{ class: "px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105 transform" },
     });
     // @ts-ignore
     [start,];
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "flex items-center justify-center gap-2" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(!__VLS_ctx.started))
@@ -365,65 +772,103 @@ if (!__VLS_ctx.started) {
                 // @ts-ignore
                 [$emit,];
             } },
-        ...{ class: "px-6 py-3 border border-slate-600 hover:border-slate-500 rounded-lg font-medium transition-all duration-300 hover:bg-slate-800/50 hover:scale-105" },
+        ...{ class: "px-8 py-3 border border-slate-600 hover:border-slate-500 rounded-xl font-medium transition-all duration-300 hover:bg-slate-800/50 hover:scale-105 transform" },
     });
 }
 else {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "mb-6" },
+        ...{ class: "mb-8" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "flex justify-between items-center mb-3" },
+        ...{ class: "flex justify-between items-center mb-4" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "text-cyan-300 font-medium" },
+        ...{ class: "flex items-center gap-3" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm" },
     });
     (__VLS_ctx.currentIndex + 1);
+    // @ts-ignore
+    [currentIndex,];
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "text-cyan-300 font-semibold" },
+    });
     (__VLS_ctx.questions.length);
     // @ts-ignore
-    [currentIndex, questions,];
+    [questions,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "text-sm bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent font-semibold" },
+        ...{ class: "flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-emerald-500/30" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "w-2 h-2 bg-emerald-400 rounded-full animate-pulse" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "text-emerald-400 font-semibold text-sm" },
     });
     (Math.round(__VLS_ctx.awarenessPreview));
     // @ts-ignore
     [awarenessPreview,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "relative" },
+        ...{ class: "relative mb-2" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "w-full bg-slate-700/50 rounded-full h-2 overflow-hidden" },
+        ...{ class: "w-full bg-slate-800/60 rounded-full h-3 overflow-hidden border border-slate-700/50" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-500 ease-out" },
+        ...{ class: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 h-full rounded-full transition-all duration-700 ease-out relative" },
         ...{ style: ({ width: ((__VLS_ctx.currentIndex + 1) / __VLS_ctx.questions.length * 100) + '%' }) },
     });
     // @ts-ignore
     [currentIndex, questions,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-400/20 via-blue-500/20 to-purple-500/20 rounded-full blur-sm" },
+        ...{ class: "absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-cyan-400/30 via-blue-500/30 to-purple-500/30 rounded-full blur-sm -z-10" },
         ...{ style: ({ width: ((__VLS_ctx.currentIndex + 1) / __VLS_ctx.questions.length * 100) + '%' }) },
     });
     // @ts-ignore
     [currentIndex, questions,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "relative" },
+        ...{ class: "text-center" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+        ...{ class: "text-xs text-slate-400" },
+    });
+    (Math.round((__VLS_ctx.currentIndex + 1) / __VLS_ctx.questions.length * 100));
+    // @ts-ignore
+    [currentIndex, questions,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "relative mb-8" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "absolute inset-0 bg-gradient-to-br from-slate-700/30 via-slate-800/40 to-slate-700/30 rounded-xl blur-sm" },
+        ...{ class: "absolute inset-0 bg-gradient-to-br from-slate-700/20 via-slate-800/30 to-slate-700/20 rounded-2xl blur-sm" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "relative bg-gradient-to-br from-slate-800/60 via-slate-900/70 to-slate-800/60 p-6 rounded-xl border border-slate-600/30 backdrop-blur-sm" },
+        ...{ class: "relative bg-gradient-to-br from-slate-800/70 via-slate-900/80 to-slate-800/70 p-6 rounded-2xl border border-slate-600/40 backdrop-blur-sm" },
     });
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "mb-5 text-slate-100 font-medium text-lg leading-relaxed" },
+        ...{ class: "absolute -top-3 left-6" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg" },
+    });
+    (__VLS_ctx.currentIndex + 1);
+    // @ts-ignore
+    [currentIndex,];
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "mt-2 mb-6" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "text-slate-100 font-medium text-lg leading-relaxed" },
     });
     __VLS_asFunctionalDirective(__VLS_directives.vHtml)(null, { ...__VLS_directiveBindingRestFields, value: (__VLS_ctx.questions[__VLS_ctx.currentIndex].text) }, null, null);
     // @ts-ignore
     [currentIndex, questions,];
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "grid gap-3" },
+        ...{ class: "space-y-3" },
     });
     for (const [opt, idx] of __VLS_getVForSourceType((__VLS_ctx.questions[__VLS_ctx.currentIndex].options))) {
         // @ts-ignore
@@ -437,13 +882,20 @@ else {
                     [choose,];
                 } },
             key: (idx),
-            ...{ class: "group relative text-left p-4 rounded-xl border transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]" },
+            ...{ class: "group relative w-full text-left p-4 rounded-xl border transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]" },
             ...{ class: (__VLS_ctx.selected === idx ?
-                    'bg-gradient-to-r from-cyan-500/20 via-blue-600/15 to-cyan-500/20 border-cyan-400/50 shadow-lg shadow-cyan-500/20' :
-                    'border-slate-600/40 hover:border-slate-500/60 hover:bg-slate-800/40') },
+                    'bg-gradient-to-r from-cyan-500/25 via-blue-600/20 to-cyan-500/25 border-cyan-400/60 shadow-lg shadow-cyan-500/25' :
+                    'border-slate-600/50 hover:border-slate-500/70 hover:bg-slate-800/50') },
         });
         // @ts-ignore
         [selected,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute left-2 top-2 w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center transition-all duration-300" },
+            ...{ class: (__VLS_ctx.selected === idx ? 'bg-cyan-400 text-slate-900' : 'bg-slate-700 text-slate-400 group-hover:bg-slate-600') },
+        });
+        // @ts-ignore
+        [selected,];
+        (String.fromCharCode(65 + idx));
         if (__VLS_ctx.selected === idx) {
             // @ts-ignore
             [selected,];
@@ -452,49 +904,72 @@ else {
             });
         }
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-            ...{ class: "relative font-medium text-slate-200 group-hover:text-slate-100 transition-colors duration-300" },
+            ...{ class: "ml-8 font-medium text-slate-200 group-hover:text-slate-100 transition-colors duration-300" },
         });
         (opt);
         if (__VLS_ctx.selected === idx) {
             // @ts-ignore
             [selected,];
             __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-                ...{ class: "absolute right-3 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" },
+                ...{ class: "absolute right-4 top-1/2 transform -translate-y-1/2" },
+            });
+            __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+                ...{ class: "w-3 h-3 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 animate-pulse" },
             });
         }
     }
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "mt-6 flex justify-between items-center" },
+        ...{ class: "flex justify-between items-center" },
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (__VLS_ctx.prev) },
         disabled: (__VLS_ctx.currentIndex === 0),
-        ...{ class: "px-5 py-2.5 border border-slate-600 rounded-lg font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-500 hover:bg-slate-800/50 hover:scale-105" },
+        ...{ class: "flex items-center gap-2 px-6 py-3 border border-slate-600 rounded-xl font-medium transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed hover:border-slate-500 hover:bg-slate-800/50 hover:scale-105 disabled:hover:scale-100" },
     });
     // @ts-ignore
     [currentIndex, prev,];
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+    __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
-        ...{ class: "flex items-center gap-3" },
+        ...{ class: "flex items-center gap-4" },
     });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "hidden sm:flex items-center gap-1" },
+    });
+    for (const [i] of __VLS_getVForSourceType((__VLS_ctx.questions.length))) {
+        // @ts-ignore
+        [questions,];
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            key: (i),
+            ...{ class: "w-2 h-2 rounded-full transition-all duration-300" },
+            ...{ class: (i <= __VLS_ctx.currentIndex + 1 ? 'bg-cyan-400' : 'bg-slate-600') },
+        });
+        // @ts-ignore
+        [currentIndex,];
+    }
     if (__VLS_ctx.currentIndex < __VLS_ctx.questions.length - 1) {
         // @ts-ignore
         [currentIndex, questions,];
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (__VLS_ctx.nextIfSelected) },
-            ...{ class: "px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105" },
+            ...{ class: "flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-cyan-500/30 hover:shadow-cyan-500/50 hover:scale-105" },
         });
         // @ts-ignore
         [nextIfSelected,];
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
     }
     else {
         __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({});
         __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
             ...{ onClick: (__VLS_ctx.finish) },
-            ...{ class: "px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 rounded-lg font-medium transition-all duration-300 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105" },
+            ...{ class: "flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 rounded-xl font-semibold transition-all duration-300 shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105" },
         });
         // @ts-ignore
         [finish,];
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({});
     }
 }
 /** @type {__VLS_StyleScopedClasses['min-h-screen']} */ ;
@@ -551,60 +1026,140 @@ else {
 /** @type {__VLS_StyleScopedClasses['via-cyan-400/60']} */ ;
 /** @type {__VLS_StyleScopedClasses['to-transparent']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-2xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-slate-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['inline-flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-3xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-blue-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-clip-text']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['max-w-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['mx-auto']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['leading-relaxed']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-200']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-slate-800/50']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['p-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-cyan-400/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-col']} */ ;
+/** @type {__VLS_StyleScopedClasses['sm:flex-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
 /** @type {__VLS_StyleScopedClasses['from-cyan-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['to-blue-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:from-cyan-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:to-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-cyan-500/30']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:shadow-cyan-500/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['border']} */ ;
 /** @type {__VLS_StyleScopedClasses['border-slate-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:border-slate-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:bg-slate-800/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-3']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-cyan-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-8']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
-/** @type {__VLS_StyleScopedClasses['from-green-400']} */ ;
-/** @type {__VLS_StyleScopedClasses['to-emerald-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-clip-text']} */ ;
-/** @type {__VLS_StyleScopedClasses['text-transparent']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
-/** @type {__VLS_StyleScopedClasses['relative']} */ ;
-/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-slate-700/50']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-cyan-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-blue-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-cyan-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-slate-800/50']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-emerald-500/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-emerald-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-emerald-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-slate-800/60']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['overflow-hidden']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-slate-700/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
 /** @type {__VLS_StyleScopedClasses['from-cyan-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['via-blue-500']} */ ;
@@ -612,55 +1167,95 @@ else {
 /** @type {__VLS_StyleScopedClasses['h-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
-/** @type {__VLS_StyleScopedClasses['duration-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-700']} */ ;
 /** @type {__VLS_StyleScopedClasses['ease-out']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-white/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
 /** @type {__VLS_StyleScopedClasses['absolute']} */ ;
 /** @type {__VLS_StyleScopedClasses['top-0']} */ ;
 /** @type {__VLS_StyleScopedClasses['left-0']} */ ;
 /** @type {__VLS_StyleScopedClasses['w-full']} */ ;
-/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
-/** @type {__VLS_StyleScopedClasses['from-cyan-400/20']} */ ;
-/** @type {__VLS_StyleScopedClasses['via-blue-500/20']} */ ;
-/** @type {__VLS_StyleScopedClasses['to-purple-500/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-cyan-400/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-blue-500/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-purple-500/30']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['blur-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['-z-10']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-slate-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['absolute']} */ ;
 /** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-br']} */ ;
-/** @type {__VLS_StyleScopedClasses['from-slate-700/30']} */ ;
-/** @type {__VLS_StyleScopedClasses['via-slate-800/40']} */ ;
-/** @type {__VLS_StyleScopedClasses['to-slate-700/30']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-slate-700/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-slate-800/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-slate-700/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-2xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['blur-sm']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-br']} */ ;
-/** @type {__VLS_StyleScopedClasses['from-slate-800/60']} */ ;
-/** @type {__VLS_StyleScopedClasses['via-slate-900/70']} */ ;
-/** @type {__VLS_StyleScopedClasses['to-slate-800/60']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-slate-800/70']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-slate-900/80']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-slate-800/70']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-2xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['border']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-slate-600/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-slate-600/40']} */ ;
 /** @type {__VLS_StyleScopedClasses['backdrop-blur-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['mb-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['-top-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['left-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-purple-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-pink-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['mb-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-slate-100']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['leading-relaxed']} */ ;
-/** @type {__VLS_StyleScopedClasses['grid']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['group']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-left']} */ ;
 /** @type {__VLS_StyleScopedClasses['p-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['border']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:scale-[1.02]']} */ ;
-/** @type {__VLS_StyleScopedClasses['active:scale-[0.98]']} */ ;
+/** @type {__VLS_StyleScopedClasses['hover:scale-[1.01]']} */ ;
+/** @type {__VLS_StyleScopedClasses['active:scale-[0.99]']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['left-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['top-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['absolute']} */ ;
 /** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
@@ -668,14 +1263,14 @@ else {
 /** @type {__VLS_StyleScopedClasses['via-transparent']} */ ;
 /** @type {__VLS_StyleScopedClasses['to-cyan-400/5']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
-/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-slate-200']} */ ;
 /** @type {__VLS_StyleScopedClasses['group-hover:text-slate-100']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-colors']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['absolute']} */ ;
-/** @type {__VLS_StyleScopedClasses['right-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['right-4']} */ ;
 /** @type {__VLS_StyleScopedClasses['top-1/2']} */ ;
 /** @type {__VLS_StyleScopedClasses['transform']} */ ;
 /** @type {__VLS_StyleScopedClasses['-translate-y-1/2']} */ ;
@@ -685,50 +1280,69 @@ else {
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-cyan-400/50']} */ ;
-/** @type {__VLS_StyleScopedClasses['mt-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-between']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['px-5']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['border']} */ ;
 /** @type {__VLS_StyleScopedClasses['border-slate-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
 /** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
-/** @type {__VLS_StyleScopedClasses['disabled:opacity-50']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:opacity-40']} */ ;
 /** @type {__VLS_StyleScopedClasses['disabled:cursor-not-allowed']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:border-slate-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:bg-slate-800/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
+/** @type {__VLS_StyleScopedClasses['disabled:hover:scale-100']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
-/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['hidden']} */ ;
+/** @type {__VLS_StyleScopedClasses['sm:flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
 /** @type {__VLS_StyleScopedClasses['from-cyan-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['to-blue-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:from-cyan-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:to-blue-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-cyan-500/30']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:shadow-cyan-500/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-6']} */ ;
-/** @type {__VLS_StyleScopedClasses['py-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-3']} */ ;
 /** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
 /** @type {__VLS_StyleScopedClasses['from-emerald-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['to-green-600']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:from-emerald-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['hover:to-green-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
 /** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
 /** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;

@@ -1,3 +1,8 @@
+/**
+ * ✅ TypeScript 源碼 - 路由配置文件
+ * 此文件會編譯成 index.js，請在此編輯而非直接修改 index.js
+ * Compiles to: index.js
+ */
 import { createRouter, createWebHistory } from 'vue-router';
 const routes = [
     // 根路由：將 '/' 及部署 base 導向分析頁，避免路由未匹配的警告

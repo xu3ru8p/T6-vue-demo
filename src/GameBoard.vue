@@ -9,6 +9,13 @@
     </div>
 
     <h2>找出唯一的詐騙訊息</h2>
+    
+    <!-- EXP 顯示 - 標題下方置中 -->
+    <div class="title-section">
+      <div class="exp-display">
+        <SoulDisplay compact />
+      </div>
+    </div>
 
     <div class="cards">
       <div
@@ -36,25 +43,35 @@
 import { ref, onMounted, watch, onUnmounted } from "vue";
 import { scamMessages } from "../database.js"; // 根目錄下
 import { realMessages } from "../database_true.js"; // 根目錄下
+import { useSoulAnimalStore } from "./stores/soulAnimalSystem.js";
+import SoulDisplay from "./SoulDisplay.vue";
 
 export default {
   name: "GameBoard",
+  components: {
+    SoulDisplay
+  },
   props: {
     round: Number,
     score: Number,
     mode: { type: String, default: "normal" }
   },
-  emits: ["next-round", "end-game"],
+  emits: ["next-round", "end-game", "soul-evolution", "wrong-ids"],
   setup(props, { emit }) {
     const gameMessages = ref([]);
     const selectedMessage = ref(null);
     const wrongIds = ref([]) // 儲存本場遊戲錯誤的訊息 id（會 emit 給父元件）
     const showResult = ref(false);
     const timeLeft = ref(20);
-  const dangerLevel = ref(0); // 0: normal, 1: warn, 2: danger
-  let audioCtx = null;
-  let masterGain = null;
-  const timerStarted = ref(false);
+    const dangerLevel = ref(0); // 0: normal, 1: warn, 2: danger
+    const answerStartTime = ref(null);
+    
+    // 靈魂動物系統
+    const soulStore = useSoulAnimalStore();
+    
+    let audioCtx = null;
+    let masterGain = null;
+    const timerStarted = ref(false);
     let timer = null;
 
     const maxRounds = 30;
@@ -64,9 +81,9 @@ export default {
   // 注意：timerStarted 用來避免換題或重入時重複啟動計時器。
   const startTimer = () => {
       if (timerStarted.value) return;
-      // total challenge timer (20s for the whole game)
+      // total challenge timer (60s for the whole game)
       dangerLevel.value = 0;
-      timeLeft.value = 20;
+      timeLeft.value = 60;
       ensureAudio();
       // main countdown (1s resolution)
       timer = setInterval(() => {
@@ -110,6 +127,16 @@ export default {
       if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     };
 
+    // 新增：停止所有音效活動（遊戲結束時調用）
+    const stopAllAudio = () => {
+      stopTickLoop();
+      if (audioCtx && audioCtx.state !== 'closed') {
+        audioCtx.close().catch(() => {});
+        audioCtx = null;
+        masterGain = null;
+      }
+    };
+
     const updateTickLoop = () => {
       // adjust tick speed if needed
       const ms = getTickIntervalMs();
@@ -126,8 +153,12 @@ export default {
   // ensureAudio：初始化 WebAudio 的 AudioContext 與總音量（masterGain）
   // 若要調整滴答聲音量，可修改下方 masterGain.gain.value 的數值。
   const ensureAudio = () => {
-      if (audioCtx) return;
+      if (audioCtx && audioCtx.state !== 'closed') return;
       try {
+        // Close previous context if it exists
+        if (audioCtx && audioCtx.state !== 'closed') {
+          audioCtx.close().catch(() => {});
+        }
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         masterGain = audioCtx.createGain();
         masterGain.gain.value = 0.14; // increased volume
@@ -142,31 +173,36 @@ export default {
   // 若要改為使用音檔，可在此改為載入 AudioBuffer 或使用 HTMLAudioElement 播放。
   const playTick = () => {
       // only play when audio available (and in challenge mode)
-      if (!audioCtx) {
+      if (!audioCtx || audioCtx.state === 'closed') {
         // try to create on first use (user gesture likely happened)
         ensureAudio();
-        if (!audioCtx) return;
+        if (!audioCtx || audioCtx.state === 'closed') return;
       }
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      // pitch depends on remaining time: higher pitch as time approaches 0
-      // pitch depends on remaining time: higher pitch as time approaches 0
-      let freq = 600;
-      if (timeLeft.value <= 3) freq = 1400;
-      else if (timeLeft.value <= 10) freq = 1000;
-      else freq = 600;
-      osc.frequency.value = freq;
-      osc.type = 'square';
-      // sharper tick: short envelope
-      gain.gain.value = 1;
-      osc.connect(gain);
-      gain.connect(masterGain);
-      const now = audioCtx.currentTime;
-      osc.start(now);
-      // very short tick (sharp click)
-      gain.gain.setValueAtTime(1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-      osc.stop(now + 0.035);
+      
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        // pitch depends on remaining time: higher pitch as time approaches 0
+        let freq = 600;
+        if (timeLeft.value <= 3) freq = 1400;
+        else if (timeLeft.value <= 10) freq = 1000;
+        else freq = 600;
+        osc.frequency.value = freq;
+        osc.type = 'square';
+        // sharper tick: short envelope
+        gain.gain.value = 1;
+        osc.connect(gain);
+        gain.connect(masterGain);
+        const now = audioCtx.currentTime;
+        osc.start(now);
+        // very short tick (sharp click)
+        gain.gain.setValueAtTime(1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+        osc.stop(now + 0.035);
+      } catch (e) {
+        // Audio context might be closed, ignore silently
+        console.warn('Audio playback failed:', e.message);
+      }
     };
 
   // updateDangerLevel：根據剩餘時間設定 dangerLevel
@@ -224,6 +260,7 @@ export default {
       gameMessages.value = roundMessages;
       selectedMessage.value = null;
       showResult.value = false;
+      answerStartTime.value = Date.now(); // 記錄開始時間
 
       if (props.mode === "challenge") startTimer();
 
@@ -235,14 +272,77 @@ export default {
       selectedMessage.value = msg;
       showResult.value = true;
 
-      const correct = msg.isScam; // 改為：選中詐騙訊息才是正確答案
+      const correct = msg.isScam; // 修正：選中詐騙訊息才是正確答案（兩真一假遊戲）
+      const answerTime = Date.now() - answerStartTime.value; // 計算答題時間
 
- // ---------- 新增：選擇後若答錯就記錄 id（放在 selectMessage 內，判斷 correct 之後） ----------
+      // 處理靈魂動物系統
+      try {
+        console.log('=== GameBoard selectMessage Debug ===');
+        console.log('GameBoard: 準備傳遞完整回合資訊');
+        console.log('GameBoard: 選中訊息:', msg);
+        console.log('GameBoard: 當前回合所有訊息:', gameMessages.value);
+        console.log('GameBoard: correct:', correct);
+        console.log('GameBoard: answerTime:', answerTime);
+        
+        // 準備完整的回合資料，包含所有三個訊息
+        const roundData = {
+          selectedMessage: msg,
+          allMessages: gameMessages.value,
+          isCorrect: correct
+        };
+        
+        const evolutionResult = soulStore.processAnswer(
+          correct, 
+          roundData, 
+          answerTime,
+          // userKTDI 暫時設為 null，因為我們使用訊息中的 psychologyScores
+          null
+        );
+
+        console.log('GameBoard: processAnswer 返回結果:', evolutionResult);
+        console.log('GameBoard: evolutionResult.roundGains:', evolutionResult.roundGains);
+        console.log('=== GameBoard Debug 結束 ===');
+
+        // 如果有進化，發射事件給父組件
+        if (evolutionResult.hasEvolved) {
+          emit("soul-evolution", {
+            xpGained: evolutionResult.xpGained,
+            hasEvolved: true,
+            previousStage: evolutionResult.previousStage,
+            newStage: evolutionResult.newStage,
+            currentAnimal: evolutionResult.currentAnimal,
+            totalXP: evolutionResult.totalXP,
+            techLevel: evolutionResult.techLevel,
+            roundGains: evolutionResult.roundGains
+          });
+        } else {
+          emit("soul-evolution", {
+            xpGained: evolutionResult.xpGained,
+            hasEvolved: false,
+            totalXP: evolutionResult.totalXP,
+            techLevel: evolutionResult.techLevel,
+            streak: evolutionResult.streak,
+            roundGains: evolutionResult.roundGains
+          });
+        }
+      } catch (soulError) {
+        console.warn('靈魂系統處理失敗，遊戲繼續進行:', soulError.message);
+        // 發送基本的事件以保持遊戲流程
+        emit("soul-evolution", {
+          xpGained: 0,
+          hasEvolved: false,
+          totalXP: 0,
+          techLevel: 1,
+          streak: 0
+        });
+      }
+
+ // ---------- 修正：選擇錯誤後記錄錯誤訊息 id ----------
 if (!correct) {
   // 現在答錯意味著選到了真實訊息，記錄該真實訊息的 id
   if (!wrongIds.value.includes(msg.id)) {
     wrongIds.value.push(msg.id)
-    console.log('GameBoard: 記錄錯誤選擇ID:', msg.id, '當前錯題列表:', wrongIds.value);
+    console.log('GameBoard: 記錄錯誤選擇ID（選到真實訊息）:', msg.id, '當前錯題列表:', wrongIds.value);
   }
 }
       
@@ -271,12 +371,24 @@ if (!correct) {
 
     onUnmounted(() => {
       if (timer) clearInterval(timer);
-      if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(() => {});
+      if (audioCtx && audioCtx.state !== 'closed') {
+        audioCtx.close().catch(() => {});
+        audioCtx = null;
+        masterGain = null;
+      }
     });
 
     watch(() => props.mode, () => initGame());
 
-    return { gameMessages, selectedMessage, selectMessage, showResult, timeLeft, dangerLevel };
+    return { 
+      gameMessages, 
+      selectedMessage, 
+      selectMessage, 
+      showResult, 
+      timeLeft, 
+      dangerLevel,
+      stopAllAudio // 暴露給父組件調用
+    };
   }
 };
 </script>
@@ -292,6 +404,40 @@ if (!correct) {
 }
 .game-board.warn { /* orange subtle heartbeat */ transform: translateZ(0); }
 .game-board.danger { /* red fast heartbeat */ transform: translateZ(0); }
+
+/* 標題區域 */
+.game-board h2 {
+  margin: 0 0 15px 0;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: bold;
+}
+
+/* 標題和EXP區域容器 */
+.title-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* EXP 顯示 - 標題下方置中 */
+.exp-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px 0;
+  width: 100%;
+}
+
+.exp-display .soul-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  min-width: 150px;
+  text-align: center;
+}
 
 .cards {
   display: flex;
@@ -424,5 +570,25 @@ if (!correct) {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .game-board {
+    padding: 20px 10px;
+  }
+  
+  .cards {
+    gap: 15px;
+  }
+  
+  .card {
+    width: 280px;
+    padding: 15px;
+  }
+  
+  .exp-display .soul-display {
+    min-width: 120px;
+  }
 }
 </style>

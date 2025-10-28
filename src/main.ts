@@ -1,3 +1,8 @@
+/**
+ * ✅ TypeScript 源碼 - 主要入口文件
+ * 此文件會編譯成 main.js，請在此編輯而非直接修改 main.js
+ * Compiles to: main.js
+ */
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'

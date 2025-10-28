@@ -3,10 +3,12 @@ import { MessageSquare, Gamepad2, Mic } from 'lucide-vue-next';
 import Quiz from './Quiz.vue';
 import Animal from './Animal.vue';
 // 明確宣告元件會發出的事件
-const emit = defineEmits(['goToWelcome', 'startQuizOrGame', 'onQuizCompleted', 'openProfile', 'goToLogin', 'goToVoiceRecognition']);
+const emit = defineEmits(['goToWelcome', 'startQuizOrGame', 'onQuizCompleted', 'openProfile', 'goToLogin', 'goToVoiceRecognition', 'logout']);
 // 定義 props
 const props = defineProps({
-    hasCompletedQuiz: { type: Boolean, default: false }
+    hasCompletedQuiz: { type: Boolean, default: false },
+    isLoggedIn: { type: Boolean, default: false },
+    currentUser: { type: String, default: 'guest' }
 });
 // Avatar 相關設定
 let initialAvatar = '';
@@ -165,6 +167,11 @@ const state = ref('login'); // 改為 'login'，表示主畫面狀態
 const result = ref(null);
 // 處理遊戲開始按鈕
 function handleGameStart() {
+    // 檢查是否已登入
+    if (!props.isLoggedIn || props.currentUser === 'guest') {
+        alert('您尚未註冊登入！\n\n請先點選「註冊登入」按鈕完成註冊，\n獲得專屬帳號後即可開始遊戲。\n\n建議使用帳號：white，密碼：123 進行測試');
+        return;
+    }
     if (props.hasCompletedQuiz) {
         // 如果已經完成過測驗，直接進入遊戲
         emit('goToWelcome');
@@ -172,6 +179,17 @@ function handleGameStart() {
     else {
         // 如果還沒完成測驗，先顯示測驗
         state.value = 'quiz';
+    }
+}
+// 處理認證按鈕（登入/登出）
+function handleAuthButton() {
+    if (props.isLoggedIn && props.currentUser !== 'guest') {
+        // 如果已登入，直接執行登出
+        emit('logout');
+    }
+    else {
+        // 如果未登入，前往登入頁面
+        emit('goToLogin');
     }
 }
 function onResultReady(payload) {
@@ -205,6 +223,15 @@ let __VLS_components;
 let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-inner']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-inner']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['group']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-img']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-frame']} */ ;
+/** @type {__VLS_StyleScopedClasses['avatar-img-svg']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-inner']} */ ;
 /** @type {__VLS_StyleScopedClasses['animate-float-particle']} */ ;
 /** @type {__VLS_StyleScopedClasses['animate-float-sms']} */ ;
@@ -274,6 +301,17 @@ if (__VLS_ctx.state === 'login') {
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "absolute top-6 right-8 z-20" },
     });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "relative" },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: "relative group" },
+    });
+    if (props.isLoggedIn && props.currentUser !== 'guest') {
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute -inset-2 bg-gradient-to-r from-green-400/30 via-emerald-400/40 to-green-500/30 rounded-full opacity-80 group-hover:opacity-100 animate-pulse transition-opacity duration-500" },
+        });
+    }
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(__VLS_ctx.state === 'login'))
@@ -283,10 +321,23 @@ if (__VLS_ctx.state === 'login') {
                 [$emit,];
             } },
         'aria-label': "開啟使用者設定",
-        ...{ class: "avatar-btn btn btn-sm btn-style-1 w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 border-cyan-400 focus:outline-none" },
+        ...{ class: ([
+                'relative avatar-btn w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-2 focus:outline-none transition-all duration-300 group-hover:scale-105',
+                props.isLoggedIn && props.currentUser !== 'guest'
+                    ? 'border-green-400/60 bg-green-400/5 shadow-green-400/20'
+                    : 'border-cyan-400/60 bg-cyan-400/5 shadow-cyan-400/20'
+            ]) },
+    });
+    __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+        ...{ class: ([
+                'absolute inset-0 rounded-full transition-all duration-300',
+                props.isLoggedIn && props.currentUser !== 'guest'
+                    ? 'bg-gradient-to-br from-green-400/15 via-emerald-400/8 to-green-600/12'
+                    : 'bg-gradient-to-br from-cyan-400/15 via-blue-400/8 to-cyan-600/12'
+            ]) },
     });
     __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
-        ...{ class: "avatar-inner" },
+        ...{ class: "relative avatar-inner" },
     });
     if (!__VLS_ctx.useFallback && __VLS_ctx.avatarSrc) {
         // @ts-ignore
@@ -324,6 +375,92 @@ if (__VLS_ctx.state === 'login') {
             fill: "#13227a",
         });
     }
+    if (props.isLoggedIn && props.currentUser !== 'guest') {
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute top-full mt-3 right-0 transform transition-all duration-300" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: ([
+                    'relative backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border transition-all duration-300',
+                    'bg-gradient-to-r from-gray-900/90 via-gray-800/95 to-gray-900/90',
+                    'border-green-400/25 shadow-green-400/10'
+                ]) },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute -top-2 right-6 w-0 h-0 border-l-4 border-r-4 border-b-4 border-l-transparent border-r-transparent border-b-green-400/25" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex items-center gap-3" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "relative" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "w-2.5 h-2.5 bg-green-400 rounded-full" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute inset-0 w-2.5 h-2.5 bg-green-400 rounded-full animate-ping opacity-40" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-center" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-green-400 text-sm font-medium tracking-wide" },
+        });
+        (props.currentUser);
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-green-300/60 text-xs font-light" },
+        });
+    }
+    if (props.isLoggedIn && props.currentUser !== 'guest') {
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute top-full mt-20 right-0 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-3 group-hover:translate-y-0 pointer-events-none z-30" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "bg-gray-900/98 backdrop-blur-xl border border-green-400/30 rounded-xl px-5 py-4 shadow-2xl min-w-[160px] relative" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-0.5 bg-gradient-to-r from-transparent via-green-400/60 to-transparent" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "space-y-3" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex items-center gap-3" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "w-10 h-10 bg-gradient-to-br from-green-400/20 to-emerald-500/20 rounded-full flex items-center justify-center border border-green-400/30" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "text-green-400 text-sm font-bold" },
+        });
+        (props.currentUser.charAt(0).toUpperCase());
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "flex-1" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-white text-sm font-semibold" },
+        });
+        (props.currentUser);
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-green-400 text-xs" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "border-t border-gray-700/50" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-center" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-gray-300 text-xs" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "text-green-400 text-xs font-medium" },
+        });
+        __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
+            ...{ class: "absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-12 h-0.5 bg-gradient-to-r from-transparent via-green-400/40 to-transparent" },
+        });
+    }
     __VLS_asFunctionalElement(__VLS_elements.div, __VLS_elements.div)({
         ...{ class: "relative z-10 flex flex-col items-center justify-center min-h-screen w-full px-4" },
     });
@@ -345,18 +482,25 @@ if (__VLS_ctx.state === 'login') {
         ...{ class: "flex flex-col sm:flex-row gap-4 justify-center items-center mt-12" },
     });
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
-        ...{ onClick: (...[$event]) => {
-                if (!(__VLS_ctx.state === 'login'))
-                    return;
-                __VLS_ctx.$emit('goToLogin');
-                // @ts-ignore
-                [$emit,];
-            } },
-        ...{ class: "group relative px-8 py-4 bg-cyan-500 hover:bg-cyan-400 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-cyan-500/50" },
+        ...{ onClick: (__VLS_ctx.handleAuthButton) },
+        ...{ class: ([
+                'group relative px-8 py-4 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg',
+                props.isLoggedIn && props.currentUser !== 'guest'
+                    ? 'bg-red-600 hover:bg-red-500 hover:shadow-red-600/50'
+                    : 'bg-cyan-500 hover:bg-cyan-400 hover:shadow-cyan-500/50'
+            ]) },
     });
+    // @ts-ignore
+    [handleAuthButton,];
+    (props.isLoggedIn && props.currentUser !== 'guest' ? '登出' : '註冊登入');
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (__VLS_ctx.handleGameStart) },
-        ...{ class: "group relative px-8 py-4 bg-purple-600 hover:bg-purple-500 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg hover:shadow-purple-600/50 flex items-center justify-center gap-2" },
+        ...{ class: ([
+                'group relative px-8 py-4 text-white text-base rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 min-w-[180px] shadow-lg flex items-center justify-center gap-2',
+                props.isLoggedIn && props.currentUser !== 'guest'
+                    ? 'bg-purple-600 hover:bg-purple-500 hover:shadow-purple-600/50'
+                    : 'bg-gray-600 hover:bg-gray-500 hover:shadow-gray-600/50 opacity-75'
+            ]) },
     });
     // @ts-ignore
     [handleGameStart,];
@@ -371,6 +515,11 @@ if (__VLS_ctx.state === 'login') {
     const __VLS_7 = __VLS_6({
         size: (20),
     }, ...__VLS_functionalComponentArgsRest(__VLS_6));
+    if (!props.isLoggedIn || props.currentUser === 'guest') {
+        __VLS_asFunctionalElement(__VLS_elements.span, __VLS_elements.span)({
+            ...{ class: "text-xs opacity-75 ml-1" },
+        });
+    }
     __VLS_asFunctionalElement(__VLS_elements.button, __VLS_elements.button)({
         ...{ onClick: (...[$event]) => {
                 if (!(__VLS_ctx.state === 'login'))
@@ -438,12 +587,12 @@ if (__VLS_ctx.state === 'quiz') {
     const __VLS_15 = __VLS_asFunctionalComponent(Quiz, new Quiz({
         ...{ 'onResultReady': {} },
         ...{ 'onCancel': {} },
-        currentUser: ('guest'),
+        currentUser: (props.currentUser),
     }));
     const __VLS_16 = __VLS_15({
         ...{ 'onResultReady': {} },
         ...{ 'onCancel': {} },
-        currentUser: ('guest'),
+        currentUser: (props.currentUser),
     }, ...__VLS_functionalComponentArgsRest(__VLS_15));
     let __VLS_18;
     let __VLS_19;
@@ -512,10 +661,23 @@ if (__VLS_ctx.state === 'result') {
 /** @type {__VLS_StyleScopedClasses['top-6']} */ ;
 /** @type {__VLS_StyleScopedClasses['right-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['z-20']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['group']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['-inset-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-green-400/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-emerald-400/40']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-green-500/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-80']} */ ;
+/** @type {__VLS_StyleScopedClasses['group-hover:opacity-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-pulse']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-opacity']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-sm']} */ ;
-/** @type {__VLS_StyleScopedClasses['btn-style-1']} */ ;
 /** @type {__VLS_StyleScopedClasses['w-16']} */ ;
 /** @type {__VLS_StyleScopedClasses['h-16']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
@@ -523,13 +685,157 @@ if (__VLS_ctx.state === 'result') {
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['border-cyan-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-2']} */ ;
 /** @type {__VLS_StyleScopedClasses['focus:outline-none']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['group-hover:scale-105']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-inner']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-img']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-frame']} */ ;
 /** @type {__VLS_StyleScopedClasses['avatar-img-svg']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['top-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['right-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['backdrop-blur-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-gray-900/90']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-gray-800/95']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-gray-900/90']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-green-400/25']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-green-400/10']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['-top-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['right-6']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-r-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-l-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-r-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-b-green-400/25']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['inset-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-2.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['animate-ping']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-40']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['tracking-wide']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-300/60']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-light']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['top-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['mt-20']} */ ;
+/** @type {__VLS_StyleScopedClasses['right-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['group-hover:opacity-100']} */ ;
+/** @type {__VLS_StyleScopedClasses['transition-all']} */ ;
+/** @type {__VLS_StyleScopedClasses['duration-500']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['translate-y-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['group-hover:translate-y-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['pointer-events-none']} */ ;
+/** @type {__VLS_StyleScopedClasses['z-30']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gray-900/98']} */ ;
+/** @type {__VLS_StyleScopedClasses['backdrop-blur-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-green-400/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['px-5']} */ ;
+/** @type {__VLS_StyleScopedClasses['py-4']} */ ;
+/** @type {__VLS_StyleScopedClasses['shadow-2xl']} */ ;
+/** @type {__VLS_StyleScopedClasses['min-w-[160px]']} */ ;
+/** @type {__VLS_StyleScopedClasses['relative']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['top-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['left-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['-translate-x-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['-translate-y-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-16']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-green-400/60']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['space-y-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['gap-3']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-10']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-10']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-br']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-green-400/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-emerald-500/20']} */ ;
+/** @type {__VLS_StyleScopedClasses['rounded-full']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex']} */ ;
+/** @type {__VLS_StyleScopedClasses['items-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['border']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-green-400/30']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-bold']} */ ;
+/** @type {__VLS_StyleScopedClasses['flex-1']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-white']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-sm']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-semibold']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-t']} */ ;
+/** @type {__VLS_StyleScopedClasses['border-gray-700/50']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-center']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-gray-300']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-green-400']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['font-medium']} */ ;
+/** @type {__VLS_StyleScopedClasses['absolute']} */ ;
+/** @type {__VLS_StyleScopedClasses['bottom-0']} */ ;
+/** @type {__VLS_StyleScopedClasses['left-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['transform']} */ ;
+/** @type {__VLS_StyleScopedClasses['-translate-x-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['translate-y-1/2']} */ ;
+/** @type {__VLS_StyleScopedClasses['w-12']} */ ;
+/** @type {__VLS_StyleScopedClasses['h-0.5']} */ ;
+/** @type {__VLS_StyleScopedClasses['bg-gradient-to-r']} */ ;
+/** @type {__VLS_StyleScopedClasses['from-transparent']} */ ;
+/** @type {__VLS_StyleScopedClasses['via-green-400/40']} */ ;
+/** @type {__VLS_StyleScopedClasses['to-transparent']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['z-10']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
@@ -566,8 +872,6 @@ if (__VLS_ctx.state === 'result') {
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-cyan-500']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-cyan-400']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-white']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-base']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
@@ -578,13 +882,10 @@ if (__VLS_ctx.state === 'result') {
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
 /** @type {__VLS_StyleScopedClasses['min-w-[180px]']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:shadow-cyan-500/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['group']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-8']} */ ;
 /** @type {__VLS_StyleScopedClasses['py-4']} */ ;
-/** @type {__VLS_StyleScopedClasses['bg-purple-600']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:bg-purple-500']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-white']} */ ;
 /** @type {__VLS_StyleScopedClasses['text-base']} */ ;
 /** @type {__VLS_StyleScopedClasses['rounded-lg']} */ ;
@@ -595,11 +896,13 @@ if (__VLS_ctx.state === 'result') {
 /** @type {__VLS_StyleScopedClasses['hover:scale-105']} */ ;
 /** @type {__VLS_StyleScopedClasses['min-w-[180px]']} */ ;
 /** @type {__VLS_StyleScopedClasses['shadow-lg']} */ ;
-/** @type {__VLS_StyleScopedClasses['hover:shadow-purple-600/50']} */ ;
 /** @type {__VLS_StyleScopedClasses['flex']} */ ;
 /** @type {__VLS_StyleScopedClasses['items-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['justify-center']} */ ;
 /** @type {__VLS_StyleScopedClasses['gap-2']} */ ;
+/** @type {__VLS_StyleScopedClasses['text-xs']} */ ;
+/** @type {__VLS_StyleScopedClasses['opacity-75']} */ ;
+/** @type {__VLS_StyleScopedClasses['ml-1']} */ ;
 /** @type {__VLS_StyleScopedClasses['group']} */ ;
 /** @type {__VLS_StyleScopedClasses['relative']} */ ;
 /** @type {__VLS_StyleScopedClasses['px-8']} */ ;

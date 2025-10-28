@@ -1,8 +1,15 @@
+/**
+ * ✅ JavaScript 源碼 - 可直接編輯
+ * 靈魂動物測驗記錄管理系統
+ * Source file: 此文件為手寫 JavaScript 源碼，非編譯產物
+ */
+
 // 靈魂動物測驗記錄管理
 class SoulAnimalStore {
   constructor() {
     this.storageKey = 'soul_animal_records'
     this.gameScoreKey = 'game_scores' // 新增遊戲分數記錄鍵
+    this.soulStorageKey = 'soul_transform_data' // 靈魂轉換數據鍵
     this.currentUser = null
   }
 
@@ -209,6 +216,7 @@ class SoulAnimalStore {
   // 獲取動物中文名稱
   getAnimalName(animal) {
     const names = {
+      // 原有10動物系統
       'Fox': '狐狸 (Fox)',
       'Turtle': '烏龜 (Turtle)', 
       'Dog': '狗 (Dog)',
@@ -218,7 +226,33 @@ class SoulAnimalStore {
       'Shark': '鯊魚 (Shark)',
       'Mouse': '老鼠 (Mouse)',
       'Octopus': '章魚 (Octopus)',
-      'Dove': '鴿子 (Dove)'
+      'Dove': '鴿子 (Dove)',
+      
+      // 新16動物系統
+      'lion': '🦁 獅子型',
+      'tiger': '🐯 老虎型', 
+      'dolphin': '🐬 海豚型',
+      'elephant': '🐘 大象型',
+      'fox': '🦊 狐狸型',
+      'wolf': '🐺 狼型',
+      'bear': '🐻 熊型',
+      'eagle': '🦅 老鷹型',
+      'rabbit': '🐰 兔子型',
+      'owl': '🦉 貓頭鷹型',
+      'panda': '🐼 熊貓型',
+      'horse': '🐴 馬型',
+      'otter': '🦦 水獺型',
+      'peacock': '🦚 孔雀型',
+      'sheep': '🐑 綿羊型',
+      'deer': '🦌 鹿型',
+      'gorilla': '🦍 金剛型',
+      'hippo': '🦛 河馬型',
+      'turtle': '🐢 烏龜型',
+      'mouse': '🐭 老鼠型',
+      'squirrel': '🐿️ 松鼠型',
+      'octopus': '🐙 章魚型',
+      'cat': '🐱 貓咪型',
+      'shark': '🦈 鯊魚型'
     }
     return names[animal] || animal
   }
@@ -298,6 +332,117 @@ class SoulAnimalStore {
   // 清除所有記錄 (用於測試)
   clearAllRecords() {
     localStorage.removeItem(this.storageKey)
+  }
+
+  // ============= 靈魂動物轉換系統 =============
+  
+  // 獲取用戶當前的靈魂動物
+  getUserSoulAnimal(username) {
+    const soulData = this.getSoulData()
+    return soulData[username]?.currentAnimal || null
+  }
+
+  // 更新用戶的靈魂動物
+  updateUserSoulAnimal(username, animalName) {
+    const soulData = this.getSoulData()
+    
+    if (!soulData[username]) {
+      soulData[username] = {
+        currentAnimal: animalName,
+        transformHistory: []
+      }
+    } else {
+      soulData[username].currentAnimal = animalName
+    }
+    
+    localStorage.setItem(this.soulStorageKey, JSON.stringify(soulData))
+    console.log(`更新 ${username} 的靈魂動物為: ${animalName}`)
+  }
+
+  // 添加轉換歷史記錄
+  addTransformHistory(username, transformRecord) {
+    const soulData = this.getSoulData()
+    
+    if (!soulData[username]) {
+      soulData[username] = {
+        currentAnimal: transformRecord.toAnimal,
+        transformHistory: []
+      }
+    }
+    
+    if (!soulData[username].transformHistory) {
+      soulData[username].transformHistory = []
+    }
+    
+    soulData[username].transformHistory.unshift(transformRecord) // 新記錄放在前面
+    
+    localStorage.setItem(this.soulStorageKey, JSON.stringify(soulData))
+    console.log(`添加 ${username} 的轉換歷史:`, transformRecord)
+  }
+
+  // 獲取用戶的轉換歷史
+  getUserTransformHistory(username) {
+    const soulData = this.getSoulData()
+    return soulData[username]?.transformHistory || []
+  }
+
+  // 獲取靈魂數據
+  getSoulData() {
+    try {
+      const stored = localStorage.getItem(this.soulStorageKey)
+      return stored ? JSON.parse(stored) : {}
+    } catch (error) {
+      console.error('讀取靈魂數據失敗:', error)
+      return {}
+    }
+  }
+
+  // 修復現有記錄中的動物名稱
+  fixAnimalNames(username = null) {
+    try {
+      const allRecords = this.getAllRecords()
+      let hasChanges = false
+      
+      const users = username ? [username] : Object.keys(allRecords)
+      
+      users.forEach(user => {
+        if (allRecords[user] && Array.isArray(allRecords[user])) {
+          allRecords[user].forEach(record => {
+            if (record.animalResult) {
+              // 修復 finalAnimal 和 animalName 的不一致
+              const correctName = this.getAnimalName(record.animalResult.finalAnimal)
+              
+              if (record.animalResult.animalName !== correctName) {
+                console.log(`🔧 修復 ${user} 的記錄: ${record.animalResult.animalName} -> ${correctName}`)
+                record.animalResult.animalName = correctName
+                hasChanges = true
+              }
+              
+              // 特別處理 gorilla 相關的問題
+              if (record.animalResult.animalName === 'gorilla' || 
+                  record.animalResult.finalAnimal === 'gorilla') {
+                record.animalResult.animalName = '🦍 金剛型'
+                record.animalResult.finalAnimal = 'gorilla' // 保持原始標識
+                hasChanges = true
+                console.log(`🦍 修復 gorilla 記錄: ${user}`)
+              }
+            }
+          })
+        }
+      })
+      
+      if (hasChanges) {
+        localStorage.setItem(this.storageKey, JSON.stringify(allRecords))
+        console.log(`✅ 動物名稱修復完成，影響用戶: ${users.join(', ')}`)
+        return true
+      }
+      
+      console.log('📝 所有記錄已經是最新格式')
+      return false
+    } catch (error) {
+      console.error('修復動物名稱時發生錯誤:', error)
+      return false
+    }
   }
 }
 

@@ -6,10 +6,26 @@ const activeTab = ref('login');
 // Login / Register Forms
 const loginForm = ref({ username: '', password: '' });
 const registerForm = ref({ name: '', email: '', password: '' });
-const validAccounts = [
+// 預設帳號
+const defaultAccounts = [
     { username: 'test', password: '123', type: 'admin' },
     { username: 'white', password: '123', type: 'analyt' }
 ];
+// 從 localStorage 載入已註冊的用戶，合併預設帳號
+const loadValidAccounts = () => {
+    const savedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    return [...defaultAccounts, ...savedUsers];
+};
+// 儲存新用戶到 localStorage
+const saveUserToStorage = (userData) => {
+    const savedUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]');
+    savedUsers.push({
+        username: userData.username,
+        password: userData.password,
+        type: userData.type
+    });
+    localStorage.setItem('registeredUsers', JSON.stringify(savedUsers));
+};
 // Matrix bars (80 條，更密集)
 const matrixBars = ref([]);
 for (let i = 0; i < 80; i++) {
@@ -35,14 +51,19 @@ for (let i = 0; i < 15; i++) {
 // Login handler
 const handleLogin = () => {
     const { username, password } = loginForm.value;
+    const validAccounts = loadValidAccounts(); // 動態載入所有有效帳號
     const validAccount = validAccounts.find(acc => acc.username === username && acc.password === password);
     if (validAccount) {
         if (validAccount.type === 'analyt') {
             // 發出特殊事件，讓 App.vue 知道要打開 Analyt 頁面
             emit('analytSuccess', { username, type: 'analyt' });
         }
-        else {
+        else if (validAccount.type === 'admin') {
             emit('loginSuccess', { username, type: validAccount.type });
+        }
+        else {
+            // 一般用戶登入，跳轉到個人頁面
+            emit('loginSuccess', { username, type: 'user' });
         }
     }
     else {
@@ -53,7 +74,33 @@ const handleLogin = () => {
 const handleRegister = () => {
     const { name, email, password } = registerForm.value;
     if (name && email && password) {
-        emit('loginSuccess', { username: name, type: 'admin' });
+        // 檢查用戶名是否已存在
+        const existingAccounts = loadValidAccounts();
+        const userExists = existingAccounts.some(acc => acc.username === name);
+        if (userExists) {
+            alert('此帳號名稱已被使用，請選擇其他名稱！');
+            return;
+        }
+        // 創建新用戶資料
+        const newUser = {
+            id: Date.now(), // 使用時間戳作為唯一 ID
+            username: name,
+            email: email,
+            password: password,
+            type: 'user', // 一般用戶
+            registeredAt: new Date().toISOString(),
+            status: 'active'
+        };
+        // 儲存到 localStorage
+        saveUserToStorage(newUser);
+        // 清空註冊表單
+        registerForm.value = { name: '', email: '', password: '' };
+        // 直接自動登入新用戶，不顯示提示
+        emit('loginSuccess', {
+            username: name,
+            type: 'user', // 註冊的用戶為一般用戶
+            userData: newUser // 傳遞完整用戶資料
+        });
     }
     else {
         alert('請填寫完整的註冊資料！');

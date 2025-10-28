@@ -157,15 +157,20 @@ const emit = defineEmits(['start', 'back'])
 // 互動眼睛設定
 // ===========================
 const pupilOffset = reactive({ x: 0, y: 0 });
-const eyeColors = reactive(["#00fff0", "#005f6a", "#001f2a", "#00fff0"]);
+// 🔧 預設使用保存的眼球顏色（白色眼球，黑色瞳孔）
+const eyeColors = reactive(["#ffffff", "#ffffff", "#ffffff", "#010404"]);
 
 const fetchEyeColors = async () => {
   try {
+    // 嘗試從後端 API 獲取設定
     const res = await fetch("http://localhost:3000/get-eye-settings");
     const data = await res.json();
     eyeColors.splice(0, 4, ...data.eyeColors);
+    console.log("眼球顏色已從後端加載:", data.eyeColors);
   } catch (err) {
-    console.error("取得顏色設定失敗", err);
+    console.warn("後端伺服器不可用，使用預設的白色眼球設定", err);
+    // 後端不可用時，保持現有的白色眼球設定
+    // 這樣即使後端伺服器沒啟動，也能維持用戶之前的設定
   }
 };
 const saveEyeColors = async () => {
